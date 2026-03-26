@@ -191,13 +191,13 @@ export function AdminDashboard() {
       <div className="grid gap-4 md:grid-cols-2">
         <Panel className="space-y-2 p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Org balance</p>
-          <p className="font-mono text-3xl font-semibold text-[var(--ink)]">
+          <p className="text-3xl font-semibold text-[var(--ink)]">
             {summary.orgBalanceCrc ? `${formatCrc(summary.orgBalanceCrc)} CRC` : "Unavailable"}
           </p>
         </Panel>
         <Panel className="space-y-2 p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Free merch given</p>
-          <p className="font-mono text-3xl font-semibold text-[var(--ink)]">{summary.freeMerchGiven}</p>
+          <p className="text-3xl font-semibold text-[var(--ink)]">{summary.freeMerchGiven}</p>
         </Panel>
       </div>
 
@@ -250,7 +250,7 @@ export function AdminDashboard() {
                             step="0.1"
                             value={draft.minPriceCrc}
                             onChange={(event) => updateDraft(item.id, "minPriceCrc", event.target.value)}
-                            className="h-11 w-24 rounded-[14px] border border-[var(--line)] bg-white px-3 font-mono text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)]"
+                            className="h-11 w-24 rounded-[14px] border border-[var(--line)] bg-white px-3 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)]"
                           />
                         </td>
                         <td className="px-4 py-4">
@@ -260,7 +260,7 @@ export function AdminDashboard() {
                             step="0.1"
                             value={draft.priceCrc}
                             onChange={(event) => updateDraft(item.id, "priceCrc", event.target.value)}
-                            className="h-11 w-24 rounded-[14px] border border-[var(--line)] bg-white px-3 font-mono text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)]"
+                            className="h-11 w-24 rounded-[14px] border border-[var(--line)] bg-white px-3 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)]"
                           />
                         </td>
                         <td className="px-4 py-4">
@@ -270,7 +270,7 @@ export function AdminDashboard() {
                             step="0.1"
                             value={draft.maxPriceCrc}
                             onChange={(event) => updateDraft(item.id, "maxPriceCrc", event.target.value)}
-                            className="h-11 w-24 rounded-[14px] border border-[var(--line)] bg-white px-3 font-mono text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)]"
+                            className="h-11 w-24 rounded-[14px] border border-[var(--line)] bg-white px-3 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)]"
                           />
                         </td>
                         <td className="px-4 py-4">
@@ -324,9 +324,9 @@ export function AdminDashboard() {
 
                 return (
                   <tr key={purchase.purchaseId} className="border-b border-[var(--line)] align-top last:border-b-0">
-                    <td className="px-4 py-4 font-mono text-xs text-[var(--ink)]">{purchase.reference}</td>
+                    <td className="px-4 py-4 text-xs text-[var(--ink)]">{purchase.reference}</td>
                     <td className="px-4 py-4 text-sm font-medium text-[var(--ink)]">{purchase.merchName}</td>
-                    <td className="px-4 py-4 font-mono text-sm text-[var(--ink)]">{purchase.expectedAmountCrc} CRC</td>
+                    <td className="px-4 py-4 text-sm text-[var(--ink)]">{purchase.expectedAmountCrc} CRC</td>
                     <td className="px-4 py-4"><StatusBadge tone={tone}>{purchase.paymentStatus}</StatusBadge></td>
                     <td className="px-4 py-4 text-sm text-[var(--muted)]">{purchase.outcomeStatus}</td>
                     <td className="px-4 py-4 text-sm font-medium text-[var(--ink)]">
@@ -335,7 +335,7 @@ export function AdminDashboard() {
                         : "Pending"}
                     </td>
                     <td className="px-4 py-4 text-sm text-[var(--muted)]">{formatDateTime(purchase.createdAt)}</td>
-                    <td className="px-4 py-4 font-mono text-xs text-[var(--muted)]">
+                    <td className="px-4 py-4 text-xs text-[var(--muted)]">
                       {purchase.paymentTxHash ? shortenAddress(purchase.paymentTxHash, 6) : "Pending"}
                     </td>
                     <td className="px-4 py-4">

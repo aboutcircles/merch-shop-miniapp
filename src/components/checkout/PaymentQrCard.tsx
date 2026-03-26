@@ -9,6 +9,25 @@ import { Panel } from "@/components/ui/Panel";
 import { StatusBadge } from "@/components/status/StatusBadge";
 import { formatDateTime, formatRelativeCountdownAt, shortenAddress } from "@/lib/utils";
 
+function IconCircle({
+  children,
+  tone = "accent",
+}: {
+  children: React.ReactNode;
+  tone?: "accent" | "success";
+}) {
+  const toneClass =
+    tone === "success"
+      ? "bg-[var(--success-bg)] text-[var(--success-ink)]"
+      : "bg-[var(--accent)]/12 text-[var(--accent)]";
+
+  return (
+    <span className={`inline-flex h-10 w-10 items-center justify-center rounded-full ${toneClass}`}>
+      {children}
+    </span>
+  );
+}
+
 export function PaymentQrCard({
   snapshot,
   pending,
@@ -98,8 +117,30 @@ export function PaymentQrCard({
           <div className="flex flex-col items-center gap-4 text-center">
             <StatusBadge tone={statusTone}>{statusLabel}</StatusBadge>
             <div className="space-y-3">
-              <h3 className="text-3xl font-semibold tracking-tight text-[var(--ink)] md:text-4xl">
-                Congratulations, you won this merch for free! 🎉
+              <h3 className="flex items-center justify-center gap-3 text-3xl font-semibold tracking-tight text-[var(--ink)] md:text-4xl">
+                <span>Congratulations, you won this merch for free!</span>
+                <IconCircle>
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 20 20"
+                    className="h-6 w-6"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.9"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M10 2.5v3" />
+                    <path d="M10 14.5v3" />
+                    <path d="M2.5 10h3" />
+                    <path d="M14.5 10h3" />
+                    <path d="m4.7 4.7 2.1 2.1" />
+                    <path d="m13.2 13.2 2.1 2.1" />
+                    <path d="m15.3 4.7-2.1 2.1" />
+                    <path d="m6.8 13.2-2.1 2.1" />
+                    <path d="M10 6.5 11 8.6l2.3.3-1.7 1.6.4 2.2-2-1.1-2 1.1.4-2.2-1.7-1.6 2.3-.3z" />
+                  </svg>
+                </IconCircle>
               </h3>
               <p className="mx-auto max-w-md text-base leading-7 text-[var(--ink)]">
                 The payment you made will be automaticlaly refunded
@@ -113,8 +154,8 @@ export function PaymentQrCard({
             <StatusBadge tone="success">Paid</StatusBadge>
             <div className="space-y-3">
               <h3 className="flex items-center justify-center gap-3 text-3xl font-semibold tracking-tight text-[var(--ink)] md:text-4xl">
-                <span>Payment Received</span>
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent)]/12 text-[var(--accent)]">
+                <span>Payment received</span>
+                <IconCircle tone="success">
                   <svg
                     aria-hidden="true"
                     viewBox="0 0 20 20"
@@ -127,10 +168,26 @@ export function PaymentQrCard({
                   >
                     <path d="m5 10 3 3 7-7" />
                   </svg>
-                </span>
+                </IconCircle>
               </h3>
-              <p className="mx-auto max-w-md text-base leading-7 text-[var(--ink)]">
-                No refund this time. Better luck on the next one 🍀
+              <p className="mx-auto flex max-w-md items-center justify-center gap-2 text-base leading-7 text-[var(--ink)]">
+                <span>No refund this time. Better luck on the next one</span>
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 20 20"
+                  className="h-5 w-5 text-[var(--accent)]"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.9"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M9.9 10.2c-.8 1.3-2.2 2-3.5 2-2 0-3.6-1.5-3.6-3.5S4.4 5.2 6.4 5.2c1.3 0 2.6.8 3.4 2" />
+                  <path d="M10.1 10.2c.8 1.3 2.2 2 3.5 2 2 0 3.6-1.5 3.6-3.5s-1.6-3.5-3.6-3.5c-1.3 0-2.6.8-3.4 2" />
+                  <path d="M10 10.2c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2Z" />
+                  <path d="M10 10.4v5.1" />
+                  <path d="M10 15.5c0 1.1-.8 1.9-1.8 1.9" />
+                </svg>
               </p>
             </div>
           </div>
@@ -179,7 +236,7 @@ export function PaymentQrCard({
             {snapshot.paymentTxHash ? (
               <div className="flex items-center justify-between gap-4">
                 <span>Payment tx</span>
-                <span className="font-mono text-[var(--ink)]">{shortenAddress(snapshot.paymentTxHash, 6)}</span>
+                <span className="text-[var(--ink)]">{shortenAddress(snapshot.paymentTxHash, 6)}</span>
               </div>
             ) : null}
           </div>
@@ -203,9 +260,22 @@ export function PaymentQrCard({
               href="https://github.com/aboutcircles/CirclesMiniapps"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--accent)] bg-white px-4 text-sm font-semibold text-[var(--accent)] transition-transform duration-200 ease-out hover:-translate-y-0.5"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[var(--accent)] bg-white px-4 text-sm font-semibold text-[var(--accent)] transition-transform duration-200 ease-out hover:-translate-y-0.5"
             >
-              🛠 Starter kit
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 20 20"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M11.4 4.2a3.4 3.4 0 0 0 4.4 4.4l-4 4-2.3-2.3-4.8 4.8a1.1 1.1 0 0 1-1.6-1.6l4.8-4.8-2.3-2.3z" />
+                <path d="m12.8 5.7 1.5 1.5" />
+              </svg>
+              <span>Starter kit</span>
             </a>
             <p className="text-sm leading-6 text-[var(--muted)]">
               Join the Circles Builders channel on Telegram to go further.
@@ -216,7 +286,7 @@ export function PaymentQrCard({
 
       <div className="space-y-1">
         <p className="text-3xl font-semibold text-[var(--ink)]">{snapshot.selectedAmountCrc} CRC</p>
-        <p className="font-mono text-sm text-[var(--muted)]">
+        <p className="text-sm text-[var(--muted)]">
           {awaitingPayment ? countdown : snapshot.paymentDetectedAt ? `Paid at ${formatDateTime(snapshot.paymentDetectedAt)}` : countdown}
         </p>
       </div>

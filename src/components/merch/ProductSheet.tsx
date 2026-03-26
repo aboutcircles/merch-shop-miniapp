@@ -180,93 +180,93 @@ function ProductSheetInner({
           </div>
           <div className="flex flex-col gap-6 p-2 lg:px-4 lg:py-2">
             <div className="space-y-3 text-center lg:pt-2">
-              <p className="font-serif text-2xl leading-tight text-[var(--ink)] md:text-3xl">
+              <p className="text-2xl leading-tight text-[var(--ink)] md:text-3xl">
                 {currentItem.name}
               </p>
             </div>
 
             <div className="space-y-5">
               <div className="px-1 text-center">
-                <p className="font-serif text-3xl leading-[0.95] text-[var(--ink)] md:text-4xl xl:text-[3.25rem]">
+                <p className="text-3xl leading-[0.95] text-[var(--ink)] md:text-4xl xl:text-[3.25rem]">
                   Choose your own price.
                 </p>
                 <p className="mx-auto mt-3 max-w-[32rem] text-base leading-tight text-[var(--muted)] md:text-lg">
                   The higher your price, the higher your odds of getting it free.
                 </p>
-                <p className="mt-5 font-mono text-4xl leading-none tabular-nums text-[var(--ink)] md:text-5xl">
+                <p className="mt-5 text-4xl leading-none tabular-nums text-[var(--ink)] md:text-5xl">
                   {selectedAmount} CRC
                 </p>
               </div>
 
               <div className="grid gap-6 lg:grid-cols-[11.5rem_minmax(0,1fr)_11.5rem] lg:items-end xl:grid-cols-[12.5rem_minmax(0,1fr)_12.5rem]">
-              <div className="space-y-2 lg:text-left">
-                <p className="text-sm font-medium text-[var(--ink)]">Chance its Free</p>
-                <div>
-                  <div className="inline-flex items-center gap-3">
-                    <span className="min-w-[6.5rem] rounded-[8px] border border-[rgba(254,85,17,0.14)] bg-[var(--orange-100)] px-4 py-2 text-center font-mono text-3xl tabular-nums text-[var(--ink)] md:text-4xl">
+                <div className="space-y-2 lg:text-left">
+                  <p className="text-sm font-medium text-[var(--ink)]">Chance its Free</p>
+                  <div>
+                    <div className="inline-flex items-center gap-3">
+                    <span className="min-w-[6.5rem] rounded-[8px] border border-[rgba(254,85,17,0.14)] bg-[var(--orange-100)] px-4 py-2 text-center text-3xl tabular-nums text-[var(--ink)] md:text-4xl">
                       {refundChancePercent}%
                     </span>
-                    <span className="font-serif text-3xl leading-none md:text-4xl">FREE</span>
+                    <span className="text-3xl leading-none md:text-4xl">FREE</span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="space-y-5">
-                <div className="space-y-4">
-                  <div
-                    ref={sliderRef}
-                    role="slider"
-                    tabIndex={0}
-                    aria-label="Choose CRC amount"
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-valuenow={sliderValue}
-                    aria-valuetext={`${selectedAmount} CRC`}
-                    onKeyDown={handleSliderKeyDown}
-                    onPointerDown={handleSliderPointerDown}
-                    onPointerMove={handleSliderPointerMove}
-                    onPointerUp={handleSliderPointerEnd}
-                    onPointerCancel={handleSliderPointerEnd}
-                    className="relative h-14 touch-none select-none rounded-full outline-none ring-0 transition focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-4 focus-visible:ring-offset-transparent"
-                  >
-                    <div className="absolute inset-x-0 top-1/2 h-4 -translate-y-1/2 overflow-hidden rounded-full border border-[var(--line)] bg-[var(--line-soft)] shadow-[inset_0_1px_2px_rgba(5,6,26,0.05)]">
+                <div className="space-y-5">
+                  <div className="space-y-4">
+                    <div
+                      ref={sliderRef}
+                      role="slider"
+                      tabIndex={0}
+                      aria-label="Choose CRC amount"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={sliderValue}
+                      aria-valuetext={`${selectedAmount} CRC`}
+                      onKeyDown={handleSliderKeyDown}
+                      onPointerDown={handleSliderPointerDown}
+                      onPointerMove={handleSliderPointerMove}
+                      onPointerUp={handleSliderPointerEnd}
+                      onPointerCancel={handleSliderPointerEnd}
+                      className="relative h-14 touch-none select-none rounded-full outline-none ring-0 transition focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-4 focus-visible:ring-offset-transparent"
+                    >
+                      <div className="absolute inset-x-0 top-1/2 h-4 -translate-y-1/2 overflow-hidden rounded-full border border-[var(--line)] bg-[var(--line-soft)] shadow-[inset_0_1px_2px_rgba(5,6,26,0.05)]">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${sliderValue}%`,
+                            background:
+                              "linear-gradient(90deg, var(--orange-500) 0%, var(--orange-400) 18%, var(--accent-mid) 58%, var(--accent) 100%)",
+                          }}
+                        />
+                      </div>
                       <div
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${sliderValue}%`,
-                          background:
-                            "linear-gradient(90deg, var(--orange-500) 0%, var(--orange-400) 18%, var(--accent-mid) 58%, var(--accent) 100%)",
-                        }}
+                        className={`absolute top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/80 bg-[linear-gradient(180deg,#ffffff,rgba(234,232,255,0.95))] shadow-[0_12px_28px_rgba(67,53,223,0.2),inset_0_1px_0_#fff] ${draggingPointerId === null ? "cursor-grab" : "cursor-grabbing"}`}
+                        aria-hidden="true"
+                        style={{ left: `${sliderValue}%` }}
                       />
                     </div>
-                    <div
-                      className={`absolute top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/80 bg-[linear-gradient(180deg,#ffffff,rgba(234,232,255,0.95))] shadow-[0_12px_28px_rgba(67,53,223,0.2),inset_0_1px_0_#fff] ${draggingPointerId === null ? "cursor-grab" : "cursor-grabbing"}`}
-                      aria-hidden="true"
-                      style={{ left: `${sliderValue}%` }}
-                    />
-                  </div>
 
-                  <div className="flex items-center justify-between gap-4 font-mono text-sm text-[var(--muted)]">
+                  <div className="flex items-center justify-between gap-4 text-sm text-[var(--muted)]">
                     <span>{currentItem.minPriceCrc} CRC</span>
                     <span>{currentItem.maxPriceCrc} CRC</span>
                   </div>
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-2 lg:text-right">
-                <p className="text-sm font-medium text-[var(--ink)]">Chance you Pay</p>
-                <div className="inline-flex items-center justify-end gap-3">
-                  <span className="min-w-[6.5rem] rounded-[8px] border border-[var(--line)] bg-[rgba(255,255,255,0.92)] px-4 py-2 text-center font-mono text-3xl tabular-nums text-[var(--ink)] md:text-4xl">
+                <div className="space-y-2 lg:text-right">
+                  <p className="text-sm font-medium text-[var(--ink)]">Chance you Pay</p>
+                  <div className="inline-flex items-center justify-end gap-3">
+                  <span className="min-w-[6.5rem] rounded-[8px] border border-[var(--line)] bg-[rgba(255,255,255,0.92)] px-4 py-2 text-center text-3xl tabular-nums text-[var(--ink)] md:text-4xl">
                     {payChancePercent}%
                   </span>
+                  </div>
                 </div>
-              </div>
               </div>
             </div>
 
             <div className="flex items-center gap-3 text-[var(--ink)]">
               <span className="h-4 w-4 bg-[var(--ink)]" />
-              <span className="font-serif text-2xl">{currentItem.name}</span>
+              <span className="text-2xl">{currentItem.name}</span>
             </div>
 
             {error ? (
@@ -277,7 +277,7 @@ function ProductSheetInner({
 
             <div className="mt-auto flex flex-col gap-3 sm:flex-row">
               <Button block className="h-14 text-base" disabled={loading} onClick={handlePurchase}>
-                {loading ? "Creating checkout..." : "Continue to QR"}
+                {loading ? "Creating checkout..." : "Continue to Payment"}
               </Button>
               <Button block variant="secondary" className="h-14 text-base" onClick={onClose}>
                 Back

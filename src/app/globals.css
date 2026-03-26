@@ -79,5 +79,5 @@ input {
 }
 
 .mono {
-  font-family: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-space-grotesk), -apple-system, ui-sans-serif, system-ui, "Segoe UI", sans-serif;
 }
