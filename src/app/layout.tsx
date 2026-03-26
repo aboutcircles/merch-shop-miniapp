@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
-import { Space_Grotesk } from "next/font/google";
+import { Geist } from "next/font/google";
 
 import "@/app/globals.css";
 import { cn } from "@/lib/utils";
 
-const spaceGrotesk = Space_Grotesk({
+const geist = Geist({
   subsets: ["latin"],
-  variable: "--font-space-grotesk",
+  variable: "--font-geist",
 });
 
 export const metadata: Metadata = {
-  title: "Circles EthCC shop",
-  description: "Tablet-first CRC merch checkout for in-person booth sales.",
+  title: "Gnosis Merch Shop",
+  description: "CRC merch checkout for in-person booth sales.",
   icons: {
     icon: "/circles-logo.svg",
     shortcut: "/circles-logo.svg",
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={cn(spaceGrotesk.variable, "min-h-screen antialiased")}>
+      <body className={cn(geist.variable, "min-h-screen antialiased")}>
         {children}
       </body>
     </html>

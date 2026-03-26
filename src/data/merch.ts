@@ -18,7 +18,7 @@ export const merchCatalog: Array<Omit<MerchItem, "priceCrc" | "minPriceCrc" | "m
   {
     id: "merch_tshirt_navy",
     slug: "navy-tshirt",
-    name: "Dark Blue T-Shirt",
+    name: "Fork Banks Blue Tshirt",
     image: "/merch/tshirt-navy.png",
     stock: 18,
     isActive: true,
@@ -29,7 +29,7 @@ export const merchCatalog: Array<Omit<MerchItem, "priceCrc" | "minPriceCrc" | "m
   {
     id: "merch_tshirt_lilac",
     slug: "lilac-tshirt",
-    name: "Lilac T-Shirt",
+    name: "Fork Banks Lilac Tshirt",
     image: "/merch/tshirt-lilac.png",
     stock: 14,
     isActive: true,
@@ -51,7 +51,7 @@ export const merchCatalog: Array<Omit<MerchItem, "priceCrc" | "minPriceCrc" | "m
   {
     id: "merch_socks_blue",
     slug: "blue-socks",
-    name: "Blue Socks",
+    name: "Fork Banks Socks - Blue",
     image: "/merch/socks-blue.png",
     stock: 22,
     isActive: true,
@@ -62,7 +62,7 @@ export const merchCatalog: Array<Omit<MerchItem, "priceCrc" | "minPriceCrc" | "m
   {
     id: "merch_socks_green",
     slug: "green-socks",
-    name: "Green Socks",
+    name: "Fork Banks Socks - Green",
     image: "/merch/socks-green.png",
     stock: 20,
     isActive: true,
@@ -73,7 +73,7 @@ export const merchCatalog: Array<Omit<MerchItem, "priceCrc" | "minPriceCrc" | "m
   {
     id: "merch_socks_cream",
     slug: "cream-socks",
-    name: "Cream Socks",
+    name: "Fork Banks Socks - Cream",
     image: "/merch/socks-cream.png",
     stock: 20,
     isActive: true,

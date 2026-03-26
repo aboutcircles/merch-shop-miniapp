@@ -18,7 +18,7 @@ export default async function HomePage() {
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Circles</p>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight text-[var(--ink)] md:text-4xl">
-              EthCC shop
+              Gnosis Merch Shop
             </h1>
           </div>
         </div>
