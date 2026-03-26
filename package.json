@@ -1,0 +1,39 @@
+{
+  "name": "ethccbooth",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aboutcircles/sdk": "0.1.27",
+    "@aboutcircles/sdk-core": "0.1.27",
+    "@aboutcircles/sdk-rpc": "0.1.27",
+    "@aboutcircles/sdk-runner": "^0.1.27",
+    "@aboutcircles/sdk-types": "0.1.27",
+    "@supabase/supabase-js": "^2.100.0",
+    "clsx": "2.1.1",
+    "next": "16.2.1",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-qr-code": "2.0.18",
+    "server-only": "0.0.1",
+    "tailwind-merge": "3.3.1",
+    "viem": "2.39.3",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.1.16",
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "eslint": "9.39.1",
+    "eslint-config-next": "16.2.1",
+    "tailwindcss": "4.2.2",
+    "typescript": "6.0.2"
+  }
+}
