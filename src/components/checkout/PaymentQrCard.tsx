@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import type { PurchaseSnapshot } from "@/types";
 import { Panel } from "@/components/ui/Panel";
 import { StatusBadge } from "@/components/status/StatusBadge";
-import { formatDateTime, formatRelativeCountdownAt, shortenAddress } from "@/lib/utils";
+import { formatDateTime, formatRelativeCountdownAt } from "@/lib/utils";
 
 function IconCircle({
   children,
@@ -231,12 +231,6 @@ export function PaymentQrCard({
                 <span className="font-semibold text-[var(--ink)]">
                   {snapshot.payerDisplayName ?? "Unnamed Circles user"}
                 </span>
-              </div>
-            ) : null}
-            {snapshot.paymentTxHash ? (
-              <div className="flex items-center justify-between gap-4">
-                <span>Payment tx</span>
-                <span className="text-[var(--ink)]">{shortenAddress(snapshot.paymentTxHash, 6)}</span>
               </div>
             ) : null}
           </div>
