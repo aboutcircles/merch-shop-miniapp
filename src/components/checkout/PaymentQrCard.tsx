@@ -8,7 +8,6 @@ import { useRouter } from "next/navigation";
 
 import { merchCatalog } from "@/data/merch";
 import type { PurchaseSnapshot } from "@/types";
-import { DEVELOPER_PAGE_URL } from "@/lib/site";
 import { Panel } from "@/components/ui/Panel";
 import { StatusBadge } from "@/components/status/StatusBadge";
 import { formatDateTime, formatRelativeCountdownAt } from "@/lib/utils";
@@ -159,7 +158,9 @@ export function PaymentQrCard({
             </p>
           </div>
           <Link
-            href={DEVELOPER_PAGE_URL}
+            href={developerPageUrl}
+            target="_blank"
+            rel="noreferrer"
             className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-[var(--accent)] bg-white px-4 text-sm font-semibold text-[var(--accent)] transition-transform duration-200 ease-out hover:-translate-y-0.5"
           >
             Learn more about miniapps

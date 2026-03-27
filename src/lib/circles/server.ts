@@ -20,6 +20,22 @@ type ContractRunner = {
   sendTransaction: (txs: TransactionRequest[]) => Promise<unknown>;
 };
 
+export function getTreasuryExecutionAddress() {
+  const env = getEnv();
+  const account = privateKeyToAccount(env.CIRCLES_TREASURY_PRIVATE_KEY as Hex);
+
+  return account.address;
+}
+
+export function getCirclesPublicClient() {
+  const env = getEnv();
+
+  return createPublicClient({
+    chain: circlesChain,
+    transport: http(env.CIRCLES_RPC_URL),
+  });
+}
+
 export async function createTreasurySdk() {
   const env = getEnv();
   const account = privateKeyToAccount(env.CIRCLES_TREASURY_PRIVATE_KEY as Hex);
@@ -40,10 +56,7 @@ export async function createTreasurySdk() {
     return new Sdk(getRuntimeCirclesConfig(), runner);
   }
 
-  const publicClient = createPublicClient({
-    chain: circlesChain,
-    transport: http(env.CIRCLES_RPC_URL),
-  });
+  const publicClient = getCirclesPublicClient();
   const walletClient = createWalletClient({
     account,
     chain: circlesChain,

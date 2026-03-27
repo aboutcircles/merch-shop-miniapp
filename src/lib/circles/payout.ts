@@ -3,9 +3,31 @@ import "server-only";
 import type { Address } from "@aboutcircles/sdk-types";
 
 import { getEnv } from "@/lib/env";
-import { createTreasurySdk } from "@/lib/circles/server";
+import { createTreasurySdk, getCirclesPublicClient, getTreasuryExecutionAddress } from "@/lib/circles/server";
 import { claimPayoutProcessing, setPayoutRecord, withKeyLock } from "@/lib/idempotency";
 import type { PayoutExecutionResult, PurchaseSnapshot } from "@/types";
+
+async function assertTreasuryHasNativeGas() {
+  const sender = getTreasuryExecutionAddress();
+  const balance = await getCirclesPublicClient().getBalance({ address: sender });
+
+  if (balance <= 0n) {
+    throw new Error(
+      `Refund execution wallet ${sender} has no native gas balance. Fund it with xDAI on Gnosis/Circles before retrying refunds.`,
+    );
+  }
+}
+
+function formatRefundError(error: unknown) {
+  const message = error instanceof Error ? error.message : "Refund execution failed.";
+
+  if (message.includes("insufficient MaxFeePerGas for sender balance")) {
+    const sender = getTreasuryExecutionAddress();
+    return `Refund execution wallet ${sender} does not have enough native gas to submit the Safe transaction. Fund it with xDAI on Gnosis/Circles and retry.`;
+  }
+
+  return message;
+}
 
 export async function executeRefund(snapshot: PurchaseSnapshot): Promise<PayoutExecutionResult> {
   if (!snapshot.payerAddress) {
@@ -31,14 +53,14 @@ export async function executeRefund(snapshot: PurchaseSnapshot): Promise<PayoutE
     }
 
     try {
+      await assertTreasuryHasNativeGas();
       const env = getEnv();
       const sdk = await createTreasurySdk();
       const avatar = await sdk.getAvatar(env.CIRCLES_ORG_ADDRESS as Address);
 
-      const receipt = await avatar.transfer.direct(
+      const receipt = await avatar.transfer.advanced(
         snapshot.payerAddress as Address,
         BigInt(verifiedAmountAttoCrc),
-        snapshot.payerAddress as Address,
       );
 
       const txHash =
@@ -61,7 +83,7 @@ export async function executeRefund(snapshot: PurchaseSnapshot): Promise<PayoutE
         errorMessage: null,
       };
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Refund execution failed.";
+      const message = formatRefundError(error);
 
       await setPayoutRecord({
         purchaseId: snapshot.purchaseId,

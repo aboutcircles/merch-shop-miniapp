@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 
 import { PurchaseStatusClient } from "@/components/checkout/PurchaseStatusClient";
-import { DEVELOPER_PAGE_URL } from "@/lib/site";
+import { getEnv } from "@/lib/env";
+import { DEVELOPER_PAGE_PATH } from "@/lib/site";
 import { getPurchaseSnapshot } from "@/server/services/payment-service";
 
 type PurchasePageProps = {
@@ -22,12 +23,14 @@ export default async function PurchasePage({ params, searchParams }: PurchasePag
     notFound();
   }
 
+  const developerPageUrl = new URL(DEVELOPER_PAGE_PATH, getEnv().SITE_URL).toString();
+
   return (
     <PurchaseStatusClient
       purchaseId={id}
       ticket={ticket}
       initialSnapshot={snapshot}
-      developerPageUrl={DEVELOPER_PAGE_URL}
+      developerPageUrl={developerPageUrl}
     />
   );
 }

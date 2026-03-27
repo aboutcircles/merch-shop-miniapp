@@ -134,7 +134,7 @@ export async function getOrgTransferDataEvents(limit = 150) {
   return events.slice(0, limit);
 }
 
-function sumMatchingTransferSingles(
+function sumMatchingTransfers(
   logs: Awaited<ReturnType<ReturnType<typeof getPublicClient>["getTransactionReceipt"]>>["logs"],
   fromAddress: string,
   toAddress: string,
@@ -142,7 +142,8 @@ function sumMatchingTransferSingles(
   const hubAddress = normalizeAddress(getRuntimeCirclesConfig().v2HubAddress);
   const normalizedFrom = normalizeAddress(fromAddress);
   const normalizedTo = normalizeAddress(toAddress);
-  let total = 0n;
+  let streamedTotal = 0n;
+  let directTransferTotal = 0n;
 
   for (const log of logs) {
     if (normalizeAddress(log.address) !== hubAddress) {
@@ -156,31 +157,47 @@ function sumMatchingTransferSingles(
         topics: log.topics,
       });
 
-      if (decoded.eventName !== "TransferSingle") {
+      if (decoded.eventName === "StreamCompleted") {
+        if (
+          normalizeAddress(decoded.args.from) === normalizedFrom &&
+          normalizeAddress(decoded.args.to) === normalizedTo
+        ) {
+          streamedTotal += decoded.args.amounts.reduce((sum, value) => sum + value, 0n);
+        }
         continue;
       }
 
-      if (
-        normalizeAddress(decoded.args.from) !== normalizedFrom ||
-        normalizeAddress(decoded.args.to) !== normalizedTo
-      ) {
+      if (decoded.eventName === "TransferSingle") {
+        if (
+          normalizeAddress(decoded.args.from) === normalizedFrom &&
+          normalizeAddress(decoded.args.to) === normalizedTo
+        ) {
+          directTransferTotal += decoded.args.value;
+        }
         continue;
       }
 
-      total += decoded.args.value;
+      if (decoded.eventName === "TransferBatch") {
+        if (
+          normalizeAddress(decoded.args.from) === normalizedFrom &&
+          normalizeAddress(decoded.args.to) === normalizedTo
+        ) {
+          directTransferTotal += decoded.args.values.reduce((sum, value) => sum + value, 0n);
+        }
+      }
     } catch {
       continue;
     }
   }
 
-  return total;
+  return streamedTotal > 0n ? streamedTotal : directTransferTotal;
 }
 
 export async function getTransferAmountForTx(event: Pick<CirclesTransferDataEvent, "transactionHash" | "from" | "to">) {
   const receipt = await getPublicClient().getTransactionReceipt({
     hash: event.transactionHash as `0x${string}`,
   });
-  const totalAttoCrc = sumMatchingTransferSingles(receipt.logs, event.from, event.to);
+  const totalAttoCrc = sumMatchingTransfers(receipt.logs, event.from, event.to);
 
   if (totalAttoCrc <= 0n) {
     return null;
