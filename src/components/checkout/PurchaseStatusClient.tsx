@@ -34,10 +34,12 @@ export function PurchaseStatusClient({
   purchaseId,
   ticket,
   initialSnapshot,
+  developerPageUrl,
 }: {
   purchaseId: string;
   ticket: string;
   initialSnapshot: PurchaseSnapshot;
+  developerPageUrl: string;
 }) {
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [pending, setPending] = useState(false);
@@ -83,7 +85,7 @@ export function PurchaseStatusClient({
         </div>
       ) : null}
 
-      <PaymentQrCard snapshot={snapshot} pending={pending} />
+      <PaymentQrCard snapshot={snapshot} pending={pending} developerPageUrl={developerPageUrl} />
     </div>
   );
 }

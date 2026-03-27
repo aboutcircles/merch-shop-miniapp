@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import QRCode from "react-qr-code";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -31,9 +32,11 @@ function IconCircle({
 export function PaymentQrCard({
   snapshot,
   pending,
+  developerPageUrl,
 }: {
   snapshot: PurchaseSnapshot;
   pending: boolean;
+  developerPageUrl: string;
 }) {
   const router = useRouter();
   const [now, setNow] = useState(() => Date.now());
@@ -52,7 +55,7 @@ export function PaymentQrCard({
   const paymentComplete = snapshot.paymentStatus === "paid";
   const refundEligible = paymentComplete && snapshot.outcomeStatus === "won";
   const paymentLost = paymentComplete && snapshot.outcomeStatus === "lost";
-  const showMiniAppCta = paymentComplete;
+  const showDeveloperPageCta = paymentComplete;
   const showMainMessage = refundEligible || paymentLost;
   const displayMessage = awaitingPayment ? null : snapshot.statusMessage;
 
@@ -237,43 +240,33 @@ export function PaymentQrCard({
         </div>
       )}
 
-      {showMiniAppCta ? (
+      {showDeveloperPageCta ? (
         <div className="w-full rounded-[28px] border border-[rgba(67,53,223,0.18)] bg-[linear-gradient(180deg,rgba(244,242,255,0.95),rgba(255,255,255,0.98))] px-5 py-5 text-left shadow-[0_16px_40px_rgba(67,53,223,0.08)]">
-          <div className="space-y-3">
-            <StatusBadge tone="accent">Built on Circles</StatusBadge>
-            <div className="space-y-2 text-sm leading-6 text-[var(--ink)]">
-              <p>You just used a mini-app.</p>
-              <p>
-                This merch shop runs entirely onchain, built on top of Circles in a few lines of code.
-              </p>
-              <p>
-                If you&apos;re a developer or just curious about how this works, everything you need to build your own is here:
+          <div className="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-center">
+            <div className="space-y-3">
+              <StatusBadge tone="accent">Built on Circles</StatusBadge>
+              <div className="space-y-2">
+                <p className="text-base font-semibold text-[var(--ink)]">This merch booth is a mini app.</p>
+                <p className="text-sm leading-6 text-[var(--muted)]">
+                  Learn how mini apps work, how to submit one, and where to find live examples.
+                </p>
+              </div>
+              <Link
+                href="/developers"
+                className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--accent)] bg-white px-4 text-sm font-semibold text-[var(--accent)] transition-transform duration-200 ease-out hover:-translate-y-0.5"
+              >
+                Learn more about miniapps
+              </Link>
+            </div>
+
+            <div className="mx-auto w-fit rounded-[24px] border border-[rgba(67,53,223,0.12)] bg-white p-3 shadow-[inset_0_1px_0_#fff]">
+              <div className="rounded-[18px] bg-white p-2">
+                <QRCode size={132} value={developerPageUrl} />
+              </div>
+              <p className="mt-3 text-center text-xs font-medium uppercase tracking-[0.12em] text-[var(--muted)]">
+                Scan to open the developer page
               </p>
             </div>
-            <a
-              href="https://github.com/aboutcircles/CirclesMiniapps"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[var(--accent)] bg-white px-4 text-sm font-semibold text-[var(--accent)] transition-transform duration-200 ease-out hover:-translate-y-0.5"
-            >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 20 20"
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.9"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M11.4 4.2a3.4 3.4 0 0 0 4.4 4.4l-4 4-2.3-2.3-4.8 4.8a1.1 1.1 0 0 1-1.6-1.6l4.8-4.8-2.3-2.3z" />
-                <path d="m12.8 5.7 1.5 1.5" />
-              </svg>
-              <span>Starter kit</span>
-            </a>
-            <p className="text-sm leading-6 text-[var(--muted)]">
-              Join the Circles Builders channel on Telegram to go further.
-            </p>
           </div>
         </div>
       ) : null}

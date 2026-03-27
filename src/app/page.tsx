@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 import { StorefrontExperience } from "@/components/merch/StorefrontExperience";
 import { listMerchItems } from "@/lib/merch-store";
@@ -22,6 +23,13 @@ export default async function HomePage() {
             </h1>
           </div>
         </div>
+
+        <Link
+          href="/developers"
+          className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--line)] bg-white px-4 text-sm font-semibold text-[var(--ink)] shadow-[0_10px_30px_rgba(5,6,26,0.06)] transition-transform duration-200 ease-out hover:-translate-y-0.5"
+        >
+          Learn how to build Circles MiniApps like this
+        </Link>
       </header>
 
       <StorefrontExperience items={merchItems.filter((item) => item.isActive)} />
