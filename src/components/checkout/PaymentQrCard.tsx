@@ -267,8 +267,16 @@ export function PaymentQrCard({
           {awaitingStatusSection}
 
           {awaitingPayment ? (
-            <div className="rounded-[28px] border border-[var(--line)] bg-white p-4 shadow-[inset_0_1px_0_#fff]">
-              <div className="mx-auto flex max-w-[340px] justify-center rounded-[24px] bg-white p-4 md:p-6">
+            <div className="w-full rounded-[28px] border border-[var(--line)] bg-white p-4 shadow-[inset_0_1px_0_#fff]">
+              <div className="rounded-[22px] border border-[rgba(240,165,49,0.28)] bg-[rgba(255,248,235,0.92)] px-4 py-3 text-left">
+                <p className="text-sm font-semibold text-[var(--ink)]">Do not scan this QR from inside Gnosis App.</p>
+                <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+                  Scan it with your phone camera or from a second device, then complete the payment in Gnosis App
+                  after it opens.
+                </p>
+              </div>
+
+              <div className="mx-auto mt-4 flex max-w-[340px] justify-center rounded-[24px] bg-white p-4 md:p-6">
                 <QRCode size={280} value={snapshot.qrPayload} />
               </div>
             </div>

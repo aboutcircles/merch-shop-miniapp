@@ -11,14 +11,14 @@ const secondaryLinks = [
     description: "Use the Gnosis App starter kit when your mini app hands payment or signing off through a QR flow.",
   },
   {
+    href: "https://github.com/aboutcircles/CirclesMiniapps",
+    label: "Circles Miniapps GitHub repo",
+    description: "Study the hosted mini app codebase and the integration patterns used inside the Circles environment.",
+  },
+  {
     href: "https://github.com/aboutcircles/CirclesMiniapps#submitting-your-app-to-the-marketplace",
     label: "How to submit miniapps",
     description: "Follow the marketplace submission guide and open a PR with your app entry.",
-  },
-  {
-    href: "https://circles.gnosis.io/miniapps",
-    label: "Examples of other miniapps",
-    description: "Browse live mini apps already running inside the Circles ecosystem.",
   },
 ];
 
@@ -147,12 +147,12 @@ export default function DevelopersPage() {
                   Join Circles Builders on Telegram
                 </a>
                 <a
-                  href="https://github.com/aboutcircles/CirclesMiniapps"
+                  href="https://circles.gnosis.io/miniapps"
                   target="_blank"
                   rel="noreferrer"
                   className="secondary-button inline-flex min-h-12 items-center justify-center rounded-full px-5 text-sm font-semibold transition-transform duration-200 ease-out hover:-translate-y-0.5"
                 >
-                  View Circles Miniapps on GitHub
+                  Browse Circles Miniapps
                 </a>
               </div>
             </div>
@@ -195,9 +195,9 @@ export default function DevelopersPage() {
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Developer resources</p>
             <h3 className="text-3xl font-semibold tracking-tight text-[var(--ink)]">Start building or study live examples</h3>
             <p className="max-w-2xl text-sm leading-6 text-[var(--muted)]">
-              Use the QR starter when you need a Gnosis App handoff, use the Circles Miniapps repo to understand
-              the hosted environment, follow the submission guide when you are ready to list a hosted app, and
-              browse the gallery to see what production mini apps look like.
+              Use the QR starter when you need a Gnosis App handoff, study the Circles Miniapps repo to
+              understand the hosted environment, and follow the submission guide when you are ready to list a
+              hosted app.
             </p>
           </div>
 
@@ -226,7 +226,7 @@ export default function DevelopersPage() {
           <div className="space-y-3">
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Two mini app patterns</p>
             <h3 className="text-3xl font-semibold tracking-tight text-[var(--ink)]">Choose the interaction model that fits the context</h3>
-            <p className="max-w-3xl text-sm leading-6 text-[var(--muted)]">
+            <p className="text-sm leading-6 text-[var(--muted)]">
               Circles mini apps do not all behave the same way. Some use a QR handoff so the user completes the
               transaction in Gnosis App, while others are hosted inside the Circles mini app environment and can
               trigger wallet actions directly from within the app.
