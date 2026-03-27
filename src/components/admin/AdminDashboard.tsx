@@ -23,6 +23,7 @@ type AdminMerchResponse = {
 };
 
 export function AdminDashboard() {
+  const pageSize = 20;
   const [purchases, setPurchases] = useState<PurchaseSnapshot[]>([]);
   const [merchItems, setMerchItems] = useState<MerchItem[]>([]);
   const [pricingDrafts, setPricingDrafts] = useState<Record<string, { minPriceCrc: string; priceCrc: string; maxPriceCrc: string }>>({});
@@ -34,6 +35,7 @@ export function AdminDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [savingMerchId, setSavingMerchId] = useState<string | null>(null);
   const [pricingOpen, setPricingOpen] = useState(false);
+  const [ledgerPage, setLedgerPage] = useState(1);
 
   const loadPurchases = useCallback(async () => {
     try {
@@ -152,6 +154,13 @@ export function AdminDashboard() {
     }));
   }
 
+  const sortedPurchases = [...purchases].sort(
+    (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+  );
+  const totalLedgerPages = Math.max(1, Math.ceil(sortedPurchases.length / pageSize));
+  const safeLedgerPage = Math.min(ledgerPage, totalLedgerPages);
+  const paginatedPurchases = sortedPurchases.slice((safeLedgerPage - 1) * pageSize, safeLedgerPage * pageSize);
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -200,6 +209,94 @@ export function AdminDashboard() {
           <p className="text-3xl font-semibold text-[var(--ink)]">{summary.freeMerchGiven}</p>
         </Panel>
       </div>
+
+      <Panel className="overflow-hidden p-0">
+        <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] px-5 py-4">
+          <div>
+            <h2 className="text-lg font-semibold text-[var(--ink)]">Purchase ledger</h2>
+          </div>
+          <p className="text-sm text-[var(--muted)]">
+            Page {safeLedgerPage} of {totalLedgerPages}
+          </p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full border-collapse text-left">
+            <thead className="bg-[rgba(250,245,241,0.92)]">
+              <tr className="border-b border-[var(--line)]">
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Reference</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Item</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Amount</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Status</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Outcome</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Payer</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Created</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Payment tx</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Refund</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedPurchases.map((purchase) => {
+                const tone =
+                  purchase.payoutStatus === "refunded"
+                    ? "success"
+                    : purchase.paymentStatus === "cancelled"
+                      ? "warn"
+                      : purchase.paymentStatus === "paid"
+                        ? "accent"
+                        : purchase.paymentStatus === "expired"
+                          ? "warn"
+                          : "neutral";
+
+                return (
+                  <tr key={purchase.purchaseId} className="border-b border-[var(--line)] align-top last:border-b-0">
+                    <td className="px-4 py-4 text-xs text-[var(--ink)]">{purchase.reference}</td>
+                    <td className="px-4 py-4 text-sm font-medium text-[var(--ink)]">{purchase.merchName}</td>
+                    <td className="px-4 py-4 text-sm text-[var(--ink)]">{purchase.expectedAmountCrc} CRC</td>
+                    <td className="px-4 py-4"><StatusBadge tone={tone}>{purchase.paymentStatus}</StatusBadge></td>
+                    <td className="px-4 py-4 text-sm text-[var(--muted)]">{purchase.outcomeStatus}</td>
+                    <td className="px-4 py-4 text-sm font-medium text-[var(--ink)]">
+                      {purchase.payerAddress
+                        ? purchase.payerDisplayName ?? "Unnamed Circles user"
+                        : "Pending"}
+                    </td>
+                    <td className="px-4 py-4 text-sm text-[var(--muted)]">{formatDateTime(purchase.createdAt)}</td>
+                    <td className="px-4 py-4 text-xs text-[var(--muted)]">
+                      {purchase.paymentTxHash ? shortenAddress(purchase.paymentTxHash, 6) : "Pending"}
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className="text-sm text-[var(--muted)]">{purchase.payoutStatus}</span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {sortedPurchases.length > pageSize ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] px-5 py-4">
+            <p className="text-sm text-[var(--muted)]">
+              Showing {(safeLedgerPage - 1) * pageSize + 1}-
+              {Math.min(safeLedgerPage * pageSize, sortedPurchases.length)} of {sortedPurchases.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                disabled={safeLedgerPage === 1}
+                onClick={() => setLedgerPage((current) => Math.max(1, current - 1))}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={safeLedgerPage === totalLedgerPages}
+                onClick={() => setLedgerPage((current) => Math.min(totalLedgerPages, current + 1))}
+              >
+                More
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </Panel>
 
       <Panel className="overflow-hidden p-0">
         <button
@@ -291,62 +388,6 @@ export function AdminDashboard() {
             </div>
           </div>
         ) : null}
-      </Panel>
-
-      <Panel className="overflow-hidden p-0">
-        <div className="overflow-x-auto">
-          <table className="min-w-full border-collapse text-left">
-            <thead className="bg-[rgba(250,245,241,0.92)]">
-              <tr className="border-b border-[var(--line)]">
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Reference</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Item</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Amount</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Status</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Outcome</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Payer</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Created</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Payment tx</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Refund</th>
-              </tr>
-            </thead>
-            <tbody>
-              {purchases.map((purchase) => {
-                const tone =
-                  purchase.payoutStatus === "refunded"
-                    ? "success"
-                    : purchase.paymentStatus === "cancelled"
-                      ? "warn"
-                      : purchase.paymentStatus === "paid"
-                        ? "accent"
-                        : purchase.paymentStatus === "expired"
-                          ? "warn"
-                          : "neutral";
-
-                return (
-                  <tr key={purchase.purchaseId} className="border-b border-[var(--line)] align-top last:border-b-0">
-                    <td className="px-4 py-4 text-xs text-[var(--ink)]">{purchase.reference}</td>
-                    <td className="px-4 py-4 text-sm font-medium text-[var(--ink)]">{purchase.merchName}</td>
-                    <td className="px-4 py-4 text-sm text-[var(--ink)]">{purchase.expectedAmountCrc} CRC</td>
-                    <td className="px-4 py-4"><StatusBadge tone={tone}>{purchase.paymentStatus}</StatusBadge></td>
-                    <td className="px-4 py-4 text-sm text-[var(--muted)]">{purchase.outcomeStatus}</td>
-                    <td className="px-4 py-4 text-sm font-medium text-[var(--ink)]">
-                      {purchase.payerAddress
-                        ? purchase.payerDisplayName ?? "Unnamed Circles user"
-                        : "Pending"}
-                    </td>
-                    <td className="px-4 py-4 text-sm text-[var(--muted)]">{formatDateTime(purchase.createdAt)}</td>
-                    <td className="px-4 py-4 text-xs text-[var(--muted)]">
-                      {purchase.paymentTxHash ? shortenAddress(purchase.paymentTxHash, 6) : "Pending"}
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="text-sm text-[var(--muted)]">{purchase.payoutStatus}</span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
       </Panel>
     </div>
   );

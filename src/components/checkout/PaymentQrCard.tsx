@@ -1,11 +1,14 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import QRCode from "react-qr-code";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { merchCatalog } from "@/data/merch";
 import type { PurchaseSnapshot } from "@/types";
+import { DEVELOPER_PAGE_URL } from "@/lib/site";
 import { Panel } from "@/components/ui/Panel";
 import { StatusBadge } from "@/components/status/StatusBadge";
 import { formatDateTime, formatRelativeCountdownAt } from "@/lib/utils";
@@ -55,9 +58,8 @@ export function PaymentQrCard({
   const paymentComplete = snapshot.paymentStatus === "paid";
   const refundEligible = paymentComplete && snapshot.outcomeStatus === "won";
   const paymentLost = paymentComplete && snapshot.outcomeStatus === "lost";
-  const showDeveloperPageCta = paymentComplete;
-  const showMainMessage = refundEligible || paymentLost;
   const displayMessage = awaitingPayment ? null : snapshot.statusMessage;
+  const purchasedItem = merchCatalog.find((item) => item.id === snapshot.merchItemId) ?? null;
 
   const statusTone =
     refundEligible
@@ -100,8 +102,152 @@ export function PaymentQrCard({
     }
   }
 
+  const detailsRows = (
+    <div className="grid gap-3 text-sm text-[var(--muted)]">
+      <div className="flex items-center justify-between gap-4">
+        <span>Amount</span>
+        <span className="font-semibold text-[var(--ink)]">{snapshot.selectedAmountCrc} CRC</span>
+      </div>
+      {snapshot.payerAddress ? (
+        <div className="flex items-center justify-between gap-4">
+          <span>Payer</span>
+          <span className="font-semibold text-[var(--ink)]">{snapshot.payerDisplayName ?? "Unnamed Circles user"}</span>
+        </div>
+      ) : null}
+    </div>
+  );
+
+  const awaitingStatusSection = (
+    <div className="flex flex-col items-center gap-3">
+      <StatusBadge tone={statusTone}>{statusLabel}</StatusBadge>
+      {displayMessage ? <p className="max-w-md text-sm text-[var(--muted)]">{displayMessage}</p> : null}
+      <p className="text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
+        {pending ? "Checking for payment..." : "Watching for on-chain payment..."}
+      </p>
+    </div>
+  );
+
+  const purchasedItemCard = purchasedItem ? (
+    <div className="rounded-[30px] border border-[var(--line)] bg-[radial-gradient(circle_at_top,rgba(234,232,255,0.9),rgba(255,255,255,0.98)_52%,rgba(250,245,241,0.92))] p-5 text-center shadow-[inset_0_1px_0_#fff] xl:min-h-[36rem]">
+      <div className="flex h-full flex-col">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">Purchased item</p>
+        <div className="relative mx-auto mt-4 h-[17rem] w-full max-w-[18rem] overflow-hidden rounded-[24px]">
+          <Image
+            src={purchasedItem.image}
+            alt={purchasedItem.name}
+            fill
+            className="object-contain p-3"
+            sizes="(max-width: 1279px) 100vw, 18rem"
+          />
+        </div>
+        <p className="mt-4 text-lg font-semibold text-[var(--ink)]">{purchasedItem.name}</p>
+      </div>
+    </div>
+  ) : null;
+
+  const developerCard = paymentComplete ? (
+    <div className="rounded-[30px] border border-[rgba(67,53,223,0.18)] bg-[linear-gradient(180deg,rgba(244,242,255,0.95),rgba(255,255,255,0.98))] px-5 py-5 text-center shadow-[0_16px_40px_rgba(67,53,223,0.08)] xl:min-h-[36rem]">
+      <div className="flex h-full flex-col justify-between gap-5">
+        <div className="space-y-3">
+          <div className="flex justify-center">
+            <StatusBadge tone="accent">Built on Circles</StatusBadge>
+          </div>
+          <div className="space-y-2">
+            <p className="text-xl font-semibold text-[var(--ink)]">This merch booth is a Circles mini app.</p>
+            <p className="text-sm leading-6 text-[var(--muted)]">
+              Learn how mini apps work, how to submit one, and where to find live examples.
+            </p>
+          </div>
+          <Link
+            href={DEVELOPER_PAGE_URL}
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-[var(--accent)] bg-white px-4 text-sm font-semibold text-[var(--accent)] transition-transform duration-200 ease-out hover:-translate-y-0.5"
+          >
+            Learn more about miniapps
+          </Link>
+        </div>
+
+        <div className="rounded-[24px] border border-[rgba(67,53,223,0.12)] bg-white p-4 shadow-[inset_0_1px_0_#fff]">
+          <div className="mx-auto w-fit rounded-[18px] bg-white p-2">
+            <QRCode size={152} value={developerPageUrl} />
+          </div>
+          <p className="mt-3 text-center text-xs font-medium uppercase tracking-[0.12em] text-[var(--muted)]">
+            Scan to open the developer page
+          </p>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
+  const completedSummaryCard = paymentComplete ? (
+    <div
+      className={`rounded-[30px] border p-6 text-center shadow-[inset_0_1px_0_#fff] ${refundEligible
+          ? "border-[rgba(240,165,49,0.34)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(255,248,235,0.98))] shadow-[0_18px_40px_rgba(240,165,49,0.14)]"
+          : "border-[var(--line)] bg-white/96"
+        }`}
+    >
+      <div className="space-y-4">
+        <div className="flex justify-center">
+          <StatusBadge tone={refundEligible ? "accent" : "success"}>
+            {refundEligible ? "Winner" : "Paid"}
+          </StatusBadge>
+        </div>
+        <div className="flex justify-center">
+          <IconCircle tone="success">
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 20 20"
+              className="h-6 w-6"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.25"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="m5 10 3 3 7-7" />
+            </svg>
+          </IconCircle>
+        </div>
+        <div className="space-y-3">
+          <h3 className="text-4xl font-semibold tracking-tight text-[var(--ink)]">
+            {refundEligible ? "Congratulations, you won this merch for free!" : "Payment Successful"}
+          </h3>
+          <p className="mx-auto max-w-lg text-lg leading-8 text-[var(--ink)]">
+            {refundEligible
+              ? "The payment you made will be automatically refunded."
+              : "You did not receive this merch for free. Better luck on the next one!"}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-6 rounded-[24px] border border-[var(--line)] bg-white/92 px-5 py-4 text-left">
+        {detailsRows}
+      </div>
+
+      <div className="mt-6 space-y-1">
+        <p className="text-4xl font-semibold text-[var(--ink)]">{snapshot.selectedAmountCrc} CRC</p>
+        <p className="text-sm text-[var(--muted)]">
+          {snapshot.paymentDetectedAt ? `Paid at ${formatDateTime(snapshot.paymentDetectedAt)}` : countdown}
+        </p>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => {
+          router.push("/");
+          router.refresh();
+        }}
+        className="primary-button mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-full px-5 text-sm font-semibold shadow-[0_16px_36px_rgba(67,53,223,0.24)] transition-transform duration-200 ease-out hover:-translate-y-0.5"
+      >
+        Back to store
+      </button>
+    </div>
+  ) : null;
+
   return (
-    <Panel className="mx-auto flex w-full max-w-[32rem] flex-col items-center gap-6 p-5 text-center md:p-7">
+    <Panel
+      className={`mx-auto flex w-full flex-col gap-6 p-5 text-center md:p-7 ${paymentComplete ? "max-w-6xl" : "max-w-[32rem] items-center"
+        }`}
+    >
       <div>
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
           {snapshot.reference}
@@ -109,206 +255,68 @@ export function PaymentQrCard({
         <h2 className="mt-2 text-3xl font-semibold text-[var(--ink)]">{snapshot.merchName}</h2>
       </div>
 
-      <div
-        className={
-          refundEligible
-            ? "w-full rounded-[30px] border border-[var(--accent)] bg-[radial-gradient(circle_at_top,rgba(255,244,214,0.96),rgba(255,255,255,0.98)_55%,rgba(255,246,232,0.96))] px-6 py-6 shadow-[0_22px_60px_rgba(240,165,49,0.22)]"
-            : "flex flex-col items-center gap-3"
-        }
-      >
-        {refundEligible ? (
-          <div className="flex flex-col items-center gap-4 text-center">
-            <StatusBadge tone={statusTone}>{statusLabel}</StatusBadge>
-            <div className="space-y-3">
-              <h3 className="flex items-center justify-center gap-3 text-3xl font-semibold tracking-tight text-[var(--ink)] md:text-4xl">
-                <span>Congratulations, you won this merch for free!</span>
-                <IconCircle>
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 20 20"
-                    className="h-6 w-6"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.9"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M10 2.5v3" />
-                    <path d="M10 14.5v3" />
-                    <path d="M2.5 10h3" />
-                    <path d="M14.5 10h3" />
-                    <path d="m4.7 4.7 2.1 2.1" />
-                    <path d="m13.2 13.2 2.1 2.1" />
-                    <path d="m15.3 4.7-2.1 2.1" />
-                    <path d="m6.8 13.2-2.1 2.1" />
-                    <path d="M10 6.5 11 8.6l2.3.3-1.7 1.6.4 2.2-2-1.1-2 1.1.4-2.2-1.7-1.6 2.3-.3z" />
-                  </svg>
-                </IconCircle>
-              </h3>
-              <p className="mx-auto max-w-md text-base leading-7 text-[var(--ink)]">
-                The payment you made will be automaticlaly refunded
-              </p>
-            </div>
-          </div>
-        ) : null}
-
-        {paymentLost ? (
-          <div className="flex flex-col items-center gap-4 text-center">
-            <StatusBadge tone="success">Paid</StatusBadge>
-            <div className="space-y-3">
-              <h3 className="flex items-center justify-center gap-3 text-3xl font-semibold tracking-tight text-[var(--ink)] md:text-4xl">
-                <span>Payment received</span>
-                <IconCircle tone="success">
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 20 20"
-                    className="h-6 w-6"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.25"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="m5 10 3 3 7-7" />
-                  </svg>
-                </IconCircle>
-              </h3>
-              <p className="mx-auto flex max-w-md items-center justify-center gap-2 text-base leading-7 text-[var(--ink)]">
-                <span>No refund this time. Better luck on the next one</span>
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 20 20"
-                  className="h-5 w-5 text-[var(--accent)]"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.9"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M9.9 10.2c-.8 1.3-2.2 2-3.5 2-2 0-3.6-1.5-3.6-3.5S4.4 5.2 6.4 5.2c1.3 0 2.6.8 3.4 2" />
-                  <path d="M10.1 10.2c.8 1.3 2.2 2 3.5 2 2 0 3.6-1.5 3.6-3.5s-1.6-3.5-3.6-3.5c-1.3 0-2.6.8-3.4 2" />
-                  <path d="M10 10.2c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2Z" />
-                  <path d="M10 10.4v5.1" />
-                  <path d="M10 15.5c0 1.1-.8 1.9-1.8 1.9" />
-                </svg>
-              </p>
-            </div>
-          </div>
-        ) : null}
-
-        {!showMainMessage ? (
-          <>
-            <StatusBadge tone={statusTone}>{statusLabel}</StatusBadge>
-            {displayMessage ? <p className="max-w-md text-sm text-[var(--muted)]">{displayMessage}</p> : null}
-            {awaitingPayment ? (
-              <p className="text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
-                {pending ? "Checking for payment..." : "Watching for on-chain payment..."}
-              </p>
-            ) : null}
-          </>
-        ) : null}
-      </div>
-
-      {awaitingPayment ? (
-        <div className="rounded-[28px] border border-[var(--line)] bg-white p-4 shadow-[inset_0_1px_0_#fff]">
-          <div className="mx-auto flex max-w-[340px] justify-center rounded-[24px] bg-white p-4 md:p-6">
-            <QRCode size={280} value={snapshot.qrPayload} />
-          </div>
+      {paymentComplete ? (
+        <div className="grid w-full gap-6 xl:grid-cols-[0.95fr_1.4fr_0.95fr] xl:items-start">
+          <div>{purchasedItemCard}</div>
+          <div>{completedSummaryCard}</div>
+          <div>{developerCard}</div>
         </div>
       ) : (
-        <div
-          className={
-            refundEligible
-              ? "w-full rounded-[30px] border border-[rgba(240,165,49,0.34)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(255,248,235,0.98))] px-5 py-5 text-left shadow-[0_18px_40px_rgba(240,165,49,0.14)]"
-              : "w-full rounded-[28px] border border-[var(--line)] bg-white px-5 py-4 text-left shadow-[inset_0_1px_0_#fff]"
-          }
-        >
-          <div className="grid gap-3 text-sm text-[var(--muted)]">
-            <div className="flex items-center justify-between gap-4">
-              <span>Amount</span>
-              <span className="font-semibold text-[var(--ink)]">{snapshot.selectedAmountCrc} CRC</span>
-            </div>
-            {snapshot.payerAddress ? (
-              <div className="flex items-center justify-between gap-4">
-                <span>Payer</span>
-                <span className="font-semibold text-[var(--ink)]">
-                  {snapshot.payerDisplayName ?? "Unnamed Circles user"}
-                </span>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      )}
-
-      {showDeveloperPageCta ? (
-        <div className="w-full rounded-[28px] border border-[rgba(67,53,223,0.18)] bg-[linear-gradient(180deg,rgba(244,242,255,0.95),rgba(255,255,255,0.98))] px-5 py-5 text-left shadow-[0_16px_40px_rgba(67,53,223,0.08)]">
-          <div className="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-center">
-            <div className="space-y-3">
-              <StatusBadge tone="accent">Built on Circles</StatusBadge>
-              <div className="space-y-2">
-                <p className="text-base font-semibold text-[var(--ink)]">This merch booth is a mini app.</p>
-                <p className="text-sm leading-6 text-[var(--muted)]">
-                  Learn how mini apps work, how to submit one, and where to find live examples.
-                </p>
-              </div>
-              <Link
-                href="/developers"
-                className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--accent)] bg-white px-4 text-sm font-semibold text-[var(--accent)] transition-transform duration-200 ease-out hover:-translate-y-0.5"
-              >
-                Learn more about miniapps
-              </Link>
-            </div>
-
-            <div className="mx-auto w-fit rounded-[24px] border border-[rgba(67,53,223,0.12)] bg-white p-3 shadow-[inset_0_1px_0_#fff]">
-              <div className="rounded-[18px] bg-white p-2">
-                <QRCode size={132} value={developerPageUrl} />
-              </div>
-              <p className="mt-3 text-center text-xs font-medium uppercase tracking-[0.12em] text-[var(--muted)]">
-                Scan to open the developer page
-              </p>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      <div className="space-y-1">
-        <p className="text-3xl font-semibold text-[var(--ink)]">{snapshot.selectedAmountCrc} CRC</p>
-        <p className="text-sm text-[var(--muted)]">
-          {awaitingPayment ? countdown : snapshot.paymentDetectedAt ? `Paid at ${formatDateTime(snapshot.paymentDetectedAt)}` : countdown}
-        </p>
-      </div>
-
-      {awaitingPayment ? (
         <>
-          <a
-            href={snapshot.qrPayload}
-            target="_blank"
-            rel="noreferrer"
-            className="primary-button inline-flex min-h-12 w-full items-center justify-center rounded-full px-5 text-sm font-semibold shadow-[0_16px_36px_rgba(67,53,223,0.24)] transition-transform duration-200 ease-out hover:-translate-y-0.5"
-          >
-            Open In Gnosis App
-          </a>
+          {awaitingStatusSection}
 
-          <button
-            type="button"
-            disabled={cancelling}
-            onClick={() => void handleCancel()}
-            className="secondary-button inline-flex min-h-12 w-full items-center justify-center rounded-full px-5 text-sm font-semibold transition-transform duration-200 ease-out hover:-translate-y-0.5"
-          >
-            {cancelling ? "Cancelling..." : "Cancel and go to store"}
-          </button>
+          {awaitingPayment ? (
+            <div className="rounded-[28px] border border-[var(--line)] bg-white p-4 shadow-[inset_0_1px_0_#fff]">
+              <div className="mx-auto flex max-w-[340px] justify-center rounded-[24px] bg-white p-4 md:p-6">
+                <QRCode size={280} value={snapshot.qrPayload} />
+              </div>
+            </div>
+          ) : (
+            <div className="w-full rounded-[28px] border border-[var(--line)] bg-white px-5 py-4 text-left shadow-[inset_0_1px_0_#fff]">
+              {detailsRows}
+            </div>
+          )}
+
+          <div className="space-y-1">
+            <p className="text-3xl font-semibold text-[var(--ink)]">{snapshot.selectedAmountCrc} CRC</p>
+            <p className="text-sm text-[var(--muted)]">
+              {awaitingPayment ? countdown : snapshot.paymentDetectedAt ? `Paid at ${formatDateTime(snapshot.paymentDetectedAt)}` : countdown}
+            </p>
+          </div>
+
+          {awaitingPayment ? (
+            <>
+              <a
+                href={snapshot.qrPayload}
+                target="_blank"
+                rel="noreferrer"
+                className="primary-button inline-flex min-h-12 w-full items-center justify-center rounded-full px-5 text-sm font-semibold shadow-[0_16px_36px_rgba(67,53,223,0.24)] transition-transform duration-200 ease-out hover:-translate-y-0.5"
+              >
+                Open In Gnosis App
+              </a>
+
+              <button
+                type="button"
+                disabled={cancelling}
+                onClick={() => void handleCancel()}
+                className="secondary-button inline-flex min-h-12 w-full items-center justify-center rounded-full px-5 text-sm font-semibold transition-transform duration-200 ease-out hover:-translate-y-0.5"
+              >
+                {cancelling ? "Cancelling..." : "Cancel and go to store"}
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                router.push("/");
+                router.refresh();
+              }}
+              className="primary-button inline-flex min-h-12 w-full items-center justify-center rounded-full px-5 text-sm font-semibold shadow-[0_16px_36px_rgba(67,53,223,0.24)] transition-transform duration-200 ease-out hover:-translate-y-0.5"
+            >
+              Back to store
+            </button>
+          )}
         </>
-      ) : (
-        <button
-          type="button"
-          onClick={() => {
-            router.push("/");
-            router.refresh();
-          }}
-          className="primary-button inline-flex min-h-12 w-full items-center justify-center rounded-full px-5 text-sm font-semibold shadow-[0_16px_36px_rgba(67,53,223,0.24)] transition-transform duration-200 ease-out hover:-translate-y-0.5"
-        >
-          Back to store
-        </button>
       )}
     </Panel>
   );

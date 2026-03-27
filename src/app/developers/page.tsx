@@ -73,7 +73,7 @@ const miniAppTypes = [
     bullets: [
       "The mini app is opened from the Circles mini app gallery or a direct mini app URL.",
       "Wallet interactions are requested through the Circles iframe host instead of a separate QR handoff.",
-      "This pattern is better when you want mobile first flows,richer in-app experiences, repeat actions, or deeper product journeys.",
+      "This pattern is better when you want mobile first flows, richer in-app experiences, repeat actions, or deeper product journeys.",
     ],
   },
 ];
