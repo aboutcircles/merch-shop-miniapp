@@ -8,72 +8,72 @@ const secondaryLinks = [
   {
     href: "https://github.com/aboutcircles/circles-gnosisApp-starter-kit",
     label: "Boilerplate for QR-based miniapps",
-    description: "Use the Gnosis App starter kit when your mini app hands payment or signing off through a QR flow.",
+    description: "Use this starter when users scan a QR code and complete the action inside Gnosis App.",
   },
   {
     href: "https://github.com/aboutcircles/CirclesMiniapps",
     label: "Circles Miniapps GitHub repo",
-    description: "Study the hosted mini app codebase and the integration patterns used inside the Circles environment.",
+    description: "Study the hosted mini app setup when you want users to sign actions directly inside Circles with their Gnosis App passkey.",
   },
   {
     href: "https://github.com/aboutcircles/CirclesMiniapps#submitting-your-app-to-the-marketplace",
     label: "How to submit miniapps",
-    description: "Follow the marketplace submission guide and open a PR with your app entry.",
+    description: "Follow this guide when your hosted mini app is ready to be listed in the Circles mini app store.",
   },
 ];
 
 const valueProps = [
   {
-    title: "Two integration models",
-    body: "Some mini apps are hosted inside iframe windows, while others use a QR handoff and complete the wallet step in Gnosis App.",
+    title: "Two user journeys",
+    body: "Users either sign the action directly inside Circles with their Gnosis App passkey or scan a QR code and finish it in Gnosis App.",
   },
   {
-    title: "Wallet interactions where they fit",
-    body: "Hosted apps can request signatures and transactions through the Circles host. QR apps move that confirmation step into Gnosis App.",
+    title: "Direct signing feels smoother",
+    body: "Hosted mini apps keep people in one flow, but they require the Circles SDK and listing in the mini app store.",
   },
   {
-    title: "Focused product surfaces",
-    body: "Both patterns let teams ship a narrow, useful onchain flow without rebuilding the full platform around it.",
+    title: "QR is easier to deploy",
+    body: "QR-based mini apps can run on almost any web page or shared screen without store listing, but they add one extra step for the user.",
   },
 ];
 
 const buildFlow = [
   {
     step: "1",
-    title: "Choose the right pattern",
-    body: "Start by deciding whether your app should be hosted inside Circles or whether it should use a QR handoff to Gnosis App for the wallet step.",
+    title: "Choose the user journey first",
+    body: "Decide whether people should sign directly inside Circles with their Gnosis App passkey or scan a QR code and continue in Gnosis App.",
   },
   {
     step: "2",
     title: "Implement the interaction",
-    body: "Hosted apps integrate with the Circles host bridge for signatures and transactions. QR apps render a QR payload, then watch for the resulting onchain action.",
+    body: "Hosted apps integrate with the Circles SDK and host bridge for signatures and transactions. QR apps render a QR payload, then watch for the resulting onchain action.",
   },
   {
     step: "3",
     title: "Decide how users discover it",
-    body: "Hosted mini apps can be submitted to the Circles mini app marketplace. QR-based flows can also live on shared screens, booths, or merchant pages outside the hosted gallery.",
+    body: "Hosted mini apps can be listed in the Circles mini app store. QR-based flows can also live on shared screens, booths, or merchant pages without store distribution.",
   },
 ];
 
 const miniAppTypes = [
   {
-    title: "QR-initiated mini apps",
-    subtitle: "Best for shared screens, booths, kiosks, and in-person flows",
-    body: "This merch shop is an example of a QR-first mini app. The app runs as a lightweight web experience, but the actual payment is completed from the user's Gnosis App after they scan a QR code. That pattern works well when the app is shown on a public device or when the person completing the action is not already interacting from their own wallet-enabled browser.",
+    title: "Hosted mini apps with direct signing",
+    subtitle: "Best for the smoothest user experience inside Circles",
+    body: "In this model, the user opens your mini app inside Circles and signs actions directly with their Gnosis App passkey. They do not need to switch devices or scan a code, so the flow feels more natural for repeat actions and deeper product journeys. The tradeoff is that you need the Circles SDK and a listing in the mini app store.",
     bullets: [
-      "The screen displays a payment request or action as a QR code.",
-      "The user scans the QR with Gnosis App and confirms the transaction there.",
-      "The mini app watches for the resulting onchain payment and updates the UI after settlement.",
+      "The user opens the app from the Circles mini app store or a hosted mini app URL.",
+      "Signatures and transactions are requested directly inside the Circles environment.",
+      "This is the more user-friendly route, but it depends on host integration and store distribution.",
     ],
   },
   {
-    title: "Hosted wallet-connected mini apps",
-    subtitle: "Best for product flows that should feel fully native inside Circles",
-    body: "Mini apps hosted at circles.gnosis.io run inside the Circles mini app host and can integrate wallet interaction directly through the host bridge. Instead of asking the user to switch devices and scan a QR, the app can request signatures or transactions from inside the Circles environment itself. That makes the flow feel more embedded, continuous, and app-like.",
+    title: "QR-initiated mini apps",
+    subtitle: "Best for booths, kiosks, shared screens, and quick launches",
+    body: "This merch shop is an example of the QR route. Your app can run on a normal web page, kiosk, or public screen, and when the wallet step is needed it shows a QR code. The user scans it with Gnosis App and finishes the action there. That makes the setup more flexible because you do not need hosted mini app integration or store listing, but it is slightly less convenient for the user.",
     bullets: [
-      "The mini app is opened from the Circles mini app gallery or a direct mini app URL.",
-      "Wallet interactions are requested through the Circles iframe host instead of a separate QR handoff.",
-      "This pattern is better when you want mobile first flows, richer in-app experiences, repeat actions, or deeper product journeys.",
+      "The screen displays a payment request or action as a QR code.",
+      "The user scans the QR with Gnosis App and confirms the transaction there.",
+      "The mini app watches for the resulting onchain action and updates the UI after settlement.",
     ],
   },
 ];
@@ -118,10 +118,11 @@ export default function DevelopersPage() {
                   Mini apps are focused web experiences built around Circles.
                 </h2>
                 <p className="text-base leading-7 text-[var(--muted)] md:text-lg">
-                  Some run inside the Circles mini app environment and can request wallet interactions directly.
-                  Others, like this merch booth, use a QR handoff so the user completes the transaction in Gnosis
-                  App. Both patterns let builders ship focused onchain products and lightweight utilities without
-                  rebuilding the full product stack from scratch.
+                  There are two common ways to build one. In the smoother path, the user opens your app inside
+                  Circles MiniApp environment and signs with their Gnosis App passkey. In the more flexible path, the user scans a QR
+                  code and finishes the action in Gnosis App. The first route is more user-friendly, but it
+                  requires Circles host integration, SDK usage, and listing in the mini app store. The second
+                  route is easier to ship anywhere, but it adds a handoff step.
                 </p>
               </div>
 
@@ -164,11 +165,11 @@ export default function DevelopersPage() {
         <Panel className="p-6 md:p-8">
           <div className="space-y-3">
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">How it works</p>
-            <h3 className="text-3xl font-semibold tracking-tight text-[var(--ink)]">The build path depends on the pattern you choose</h3>
+            <h3 className="text-3xl font-semibold tracking-tight text-[var(--ink)]">Start from the user experience you want</h3>
             <p className="max-w-2xl text-sm leading-6 text-[var(--muted)]">
-              There is not one single mini app architecture. The main decision is whether your app should live
-              inside the Circles mini app host or whether it should use a QR-based handoff to Gnosis App from an
-              external screen or web page.
+              The main decision is simple: should users approve actions directly inside your mini app, or should
+              they scan a QR code and continue in Gnosis App? That user-facing choice determines the integration
+              work and distribution path.
             </p>
           </div>
 
@@ -195,9 +196,8 @@ export default function DevelopersPage() {
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Developer resources</p>
             <h3 className="text-3xl font-semibold tracking-tight text-[var(--ink)]">Start building or study live examples</h3>
             <p className="max-w-2xl text-sm leading-6 text-[var(--muted)]">
-              Use the QR starter when you need a Gnosis App handoff, study the Circles Miniapps repo to
-              understand the hosted environment, and follow the submission guide when you are ready to list a
-              hosted app.
+              Use the QR starter when you want a scan-first flow, study the Circles Miniapps repo when you want
+              direct in-app signing, and follow the submission guide when your hosted app is ready for the store.
             </p>
           </div>
 
@@ -227,9 +227,9 @@ export default function DevelopersPage() {
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Two mini app patterns</p>
             <h3 className="text-3xl font-semibold tracking-tight text-[var(--ink)]">Choose the interaction model that fits the context</h3>
             <p className="text-sm leading-6 text-[var(--muted)]">
-              Circles mini apps do not all behave the same way. Some use a QR handoff so the user completes the
-              transaction in Gnosis App, while others are hosted inside the Circles mini app environment and can
-              trigger wallet actions directly from within the app.
+              The difference is mostly about what the user has to do at the moment of signing. Either they stay
+              inside the mini app and approve with their Gnosis App passkey, or they scan a QR code and complete
+              the action in Gnosis App.
             </p>
           </div>
 
