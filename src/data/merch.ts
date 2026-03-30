@@ -7,8 +7,8 @@ export const merchCatalog: Array<Omit<MerchItem, "priceCrc" | "minPriceCrc" | "m
   {
     id: "merch_hoodie_blue",
     slug: "blue-hoodie",
-    name: "Blue Hoodie",
-    image: "/merch/hoodie-blue.png",
+    name: "Gnosis Hoodie",
+    image: "/merch/gnosis-hoodie.png",
     stock: 10,
     isActive: true,
     tag: defaultTag,
