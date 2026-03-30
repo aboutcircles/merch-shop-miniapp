@@ -81,6 +81,17 @@ export const merchCatalog: Array<Omit<MerchItem, "priceCrc" | "minPriceCrc" | "m
     createdAt: now,
     updatedAt: now,
   },
+  {
+    id: "merch_goodies",
+    slug: "ethcc-goodies",
+    name: "EthCC Goodies",
+    image: "/merch/goodies.png",
+    stock: 24,
+    isActive: true,
+    tag: defaultTag,
+    createdAt: now,
+    updatedAt: now,
+  },
 ];
 
 export const defaultMerchPricing: MerchPricingRecord[] = [
@@ -125,5 +136,11 @@ export const defaultMerchPricing: MerchPricingRecord[] = [
     priceCrc: "1.6",
     minPriceCrc: "1",
     maxPriceCrc: "5",
+  },
+  {
+    id: "merch_goodies",
+    priceCrc: "30",
+    minPriceCrc: "15",
+    maxPriceCrc: "48",
   },
 ];
