@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import type { MerchItem, PurchaseIntent } from "@/types";
 import { Button } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
+import { calculateRefundChancePercentFromRatio } from "@/lib/refund-chance";
 import { clamp } from "@/lib/utils";
 
 export function ProductSheet({
@@ -56,7 +57,7 @@ function ProductSheetInner({
 
   const refundChancePercent = useMemo(() => {
     const ratio = clamp(sliderValue / 100, 0, 1);
-    return Math.round(15 + ratio * 70);
+    return calculateRefundChancePercentFromRatio(ratio);
   }, [sliderValue]);
 
   const payChancePercent = 100 - refundChancePercent;

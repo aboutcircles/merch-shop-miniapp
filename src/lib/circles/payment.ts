@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 
 import type { MerchItem, PurchaseIntent, PurchaseTicketPayload } from "@/types";
 import { getEnv } from "@/lib/env";
+import { calculateRefundChancePercentForAmount } from "@/lib/refund-chance";
 import { fromAttoCrc, toAttoCrc } from "@/lib/utils";
 
 const PURCHASE_TOKEN_VERSION = 1;
@@ -31,16 +32,11 @@ function generatePaymentLink(recipientAddress: string, amountCrc: string, data: 
 }
 
 export function calculateRefundChancePercent(item: MerchItem, selectedAmountCrc: string) {
-  const min = Number(item.minPriceCrc);
-  const max = Number(item.maxPriceCrc);
-  const selected = Number(selectedAmountCrc);
-
-  if (max <= min) {
-    return 50;
-  }
-
-  const ratio = (selected - min) / (max - min);
-  return Math.round(15 + ratio * 70);
+  return calculateRefundChancePercentForAmount(
+    item.minPriceCrc,
+    item.maxPriceCrc,
+    selectedAmountCrc,
+  );
 }
 
 function buildQrPayload(payload: PurchaseTicketPayload) {
