@@ -92,6 +92,17 @@ export const merchCatalog: Array<Omit<MerchItem, "priceCrc" | "minPriceCrc" | "m
     createdAt: now,
     updatedAt: now,
   },
+  {
+    id: "merch_metal_pin",
+    slug: "metal-pin",
+    name: "Metal Pin",
+    image: "/merch/metal-pin.jpg",
+    stock: 240,
+    isActive: true,
+    tag: defaultTag,
+    createdAt: now,
+    updatedAt: now,
+  },
 ];
 
 export const defaultMerchPricing: MerchPricingRecord[] = [
@@ -142,5 +153,11 @@ export const defaultMerchPricing: MerchPricingRecord[] = [
     priceCrc: "30",
     minPriceCrc: "15",
     maxPriceCrc: "48",
+  },
+  {
+    id: "merch_metal_pin",
+    priceCrc: "1.4",
+    minPriceCrc: "1",
+    maxPriceCrc: "5",
   },
 ];
