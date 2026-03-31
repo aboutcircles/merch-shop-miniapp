@@ -23,12 +23,22 @@ export const verifyPaymentSchema = z.object({
   txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/).optional(),
 });
 
+export const adminPurchasesQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+});
+
 export const reconcileSchema = z.object({
   tickets: z.array(z.string().min(1)).max(50).optional(),
 });
 
 export const payoutRequestSchema = z.object({
   ticket: z.string().min(1),
+});
+
+export const archivePurchasesSchema = z.object({
+  beforeDays: z.coerce.number().int().min(1).max(365).default(30),
+  limit: z.coerce.number().int().min(1).max(500).default(200),
 });
 
 export const merchPricingRecordSchema = z

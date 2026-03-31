@@ -7,9 +7,15 @@ import {
   getTransferAmountForTx,
   type CirclesTransferDataEvent,
 } from "@/lib/circles/public";
-import type { ChainPayment, PurchaseSnapshot, PurchaseTicketPayload, VerificationStatus } from "@/types";
-import { getPayoutRecord, isPurchaseCancelled, setPurchasePaymentDetails } from "@/lib/idempotency";
+import { getTrackedPurchase, setPurchaseDerivedState, setPurchasePaymentDetails } from "@/lib/idempotency";
 import { resolveAutomatedOutcome } from "@/server/services/outcome-service";
+import type {
+  ChainPayment,
+  PurchaseSnapshot,
+  PurchaseTicketPayload,
+  RuntimeTrackedPurchase,
+  VerificationStatus,
+} from "@/types";
 
 function normalizeAddress(value: string) {
   return value.trim().toLowerCase();
@@ -136,44 +142,141 @@ function findMatchingPayment(
     .find((row) => eventMatchesData(row.data, payload.reference));
 }
 
+function applyOutcomeStatus(
+  snapshot: Pick<PurchaseSnapshot, "outcomeStatus" | "paymentStatus" | "payoutStatus" | "statusMessage" | "payoutTxHash">,
+  trackedPurchase: RuntimeTrackedPurchase | undefined,
+  payload: PurchaseTicketPayload,
+  paymentTxHash: string,
+  payerAddress: string,
+) {
+  const automatedOutcome = resolveAutomatedOutcome({
+    purchaseId: payload.purchaseId,
+    paymentTxHash,
+    payerAddress,
+    refundChancePercent: payload.refundChancePercent,
+    reference: payload.reference,
+  });
+
+  snapshot.paymentStatus = "paid";
+  snapshot.statusMessage = "Payment confirmed on-chain.";
+
+  if (automatedOutcome.outcome === "lost") {
+    snapshot.outcomeStatus = "lost";
+    snapshot.payoutStatus = "none";
+    snapshot.statusMessage = "Payment confirmed. This checkout was not selected for a refund.";
+  }
+
+  if (automatedOutcome.outcome === "won") {
+    snapshot.outcomeStatus = "won";
+    snapshot.payoutStatus = trackedPurchase?.payoutStatus ?? "queued";
+    snapshot.statusMessage = "Payment confirmed. Refund flow is being executed automatically.";
+  }
+
+  if (trackedPurchase?.payoutStatus === "processing") {
+    snapshot.payoutStatus = "processing";
+    snapshot.statusMessage = "Payment confirmed. Refund transaction is processing.";
+  }
+
+  if (trackedPurchase?.payoutStatus === "failed") {
+    snapshot.payoutStatus = "failed";
+    snapshot.statusMessage = "Payment confirmed, but the automatic refund failed and needs a retry.";
+  }
+
+  if (trackedPurchase?.payoutStatus === "refunded") {
+    snapshot.payoutStatus = "refunded";
+    snapshot.payoutTxHash = trackedPurchase.payoutTxHash;
+    snapshot.statusMessage = "Refund confirmed on-chain.";
+  }
+
+  return snapshot;
+}
+
+function needsDerivedStateWrite(snapshot: PurchaseSnapshot, trackedPurchase: RuntimeTrackedPurchase | undefined, cancelledAt: string | null) {
+  if (!trackedPurchase) {
+    return true;
+  }
+
+  return (
+    trackedPurchase.cancelledAt !== cancelledAt ||
+    trackedPurchase.paymentStatus !== snapshot.paymentStatus ||
+    trackedPurchase.outcomeStatus !== snapshot.outcomeStatus ||
+    trackedPurchase.payoutStatus !== snapshot.payoutStatus ||
+    trackedPurchase.verificationStatus !== snapshot.verificationStatus ||
+    trackedPurchase.verifiedAmountCrc !== snapshot.verifiedAmountCrc ||
+    trackedPurchase.verifiedAmountAttoCrc !== snapshot.verifiedAmountAttoCrc ||
+    trackedPurchase.payoutTxHash !== snapshot.payoutTxHash ||
+    trackedPurchase.statusMessage !== snapshot.statusMessage
+  );
+}
+
+export type BuildPurchaseSnapshotOptions = {
+  balanceCrc?: string | null;
+  persistDerivedState?: boolean;
+  persistPaymentDetails?: boolean;
+  trackedPurchase?: RuntimeTrackedPurchase;
+  transferEvents?: CirclesTransferDataEvent[];
+};
+
 export async function buildPurchaseSnapshot(
   payload: PurchaseTicketPayload,
   ticket: string,
   txHash?: string,
+  options?: BuildPurchaseSnapshotOptions,
 ): Promise<PurchaseSnapshot> {
-  const [rows, balanceCrc, runtimePayout, cancelled] = await Promise.all([
-    getOrgTransferDataEvents(250),
-    getOrgBalanceCrc(),
-    getPayoutRecord(payload.purchaseId),
-    isPurchaseCancelled(payload.purchaseId),
+  const [rows, balanceCrc, trackedPurchase] = await Promise.all([
+    options?.transferEvents ? Promise.resolve(options.transferEvents) : getOrgTransferDataEvents(250),
+    options && "balanceCrc" in options ? Promise.resolve(options.balanceCrc ?? null) : getOrgBalanceCrc(),
+    options?.trackedPurchase === undefined ? getTrackedPurchase(payload.purchaseId) : Promise.resolve(options.trackedPurchase),
   ]);
+
   const paymentRow = findMatchingPayment(payload, rows, txHash);
   const now = Date.now();
   const expired = now > new Date(payload.expiresAt).getTime();
   const autoCancelled = expired && !paymentRow;
+  const cancelledAt = trackedPurchase?.cancelledAt ?? (autoCancelled ? new Date().toISOString() : null);
 
-  let verificationStatus: VerificationStatus = "pending";
-  let paymentStatus: PurchaseSnapshot["paymentStatus"] = cancelled
-    ? "cancelled"
-    : autoCancelled
-      ? "cancelled"
-      : "awaiting_payment";
-  let outcomeStatus: PurchaseSnapshot["outcomeStatus"] = "pending";
-  let payoutStatus: PurchaseSnapshot["payoutStatus"] = runtimePayout?.status ?? "none";
-  let verifiedAmountCrc: string | null = null;
-  let verifiedAmountAttoCrc: string | null = null;
-  let payerAddress: string | null = null;
-  let payerDisplayName: string | null = null;
-  let paymentTxHash: string | null = null;
-  let paymentDetectedAt: string | null = null;
-  let payoutTxHash: string | null = runtimePayout?.txHash ?? null;
-  let statusMessage = cancelled
-    ? "Checkout cancelled."
-    : autoCancelled
+  let verificationStatus: VerificationStatus = trackedPurchase?.verificationStatus ?? "pending";
+  let paymentStatus: PurchaseSnapshot["paymentStatus"] = trackedPurchase?.paymentStatus ?? "awaiting_payment";
+  let outcomeStatus: PurchaseSnapshot["outcomeStatus"] = trackedPurchase?.outcomeStatus ?? "pending";
+  let payoutStatus: PurchaseSnapshot["payoutStatus"] = trackedPurchase?.payoutStatus ?? "none";
+  let verifiedAmountCrc: string | null = trackedPurchase?.verifiedAmountCrc ?? null;
+  let verifiedAmountAttoCrc: string | null = trackedPurchase?.verifiedAmountAttoCrc ?? null;
+  let payerAddress: string | null = trackedPurchase?.payerAddress ?? null;
+  let payerDisplayName: string | null = trackedPurchase?.payerDisplayName ?? null;
+  let paymentTxHash: string | null = trackedPurchase?.paymentTxHash ?? null;
+  let paymentDetectedAt: string | null = trackedPurchase?.paymentDetectedAt ?? null;
+  let payoutTxHash: string | null = trackedPurchase?.payoutTxHash ?? null;
+  let statusMessage = trackedPurchase?.statusMessage ?? "Waiting for an incoming CRC transfer.";
+
+  if (cancelledAt) {
+    paymentStatus = "cancelled";
+    statusMessage = autoCancelled
       ? "Checkout cancelled after 5 minutes without payment."
-      : "Waiting for an incoming CRC transfer.";
+      : trackedPurchase?.statusMessage ?? "Checkout cancelled.";
+  } else if (
+    trackedPurchase &&
+    (trackedPurchase.paymentStatus === "paid" || trackedPurchase.paymentStatus === "failed")
+  ) {
+    paymentStatus = trackedPurchase.paymentStatus;
+    outcomeStatus = trackedPurchase.outcomeStatus;
+    payoutStatus = trackedPurchase.payoutStatus;
+    verificationStatus = trackedPurchase.verificationStatus;
+    verifiedAmountCrc = trackedPurchase.verifiedAmountCrc;
+    verifiedAmountAttoCrc = trackedPurchase.verifiedAmountAttoCrc;
+    payoutTxHash = trackedPurchase.payoutTxHash;
+    statusMessage = trackedPurchase.statusMessage;
+  } else {
+    paymentStatus = "awaiting_payment";
+    outcomeStatus = "pending";
+    payoutStatus = "none";
+    verificationStatus = "pending";
+    verifiedAmountCrc = null;
+    verifiedAmountAttoCrc = null;
+    payoutTxHash = null;
+    statusMessage = "Waiting for an incoming CRC transfer.";
+  }
 
-  if (txHash && !paymentRow) {
+  if (txHash && !paymentRow && paymentTxHash && paymentTxHash.toLowerCase() !== txHash.toLowerCase()) {
     verificationStatus = "invalid";
     paymentStatus = "failed";
     statusMessage = "Submitted transaction does not match this purchase.";
@@ -196,61 +299,76 @@ export async function buildPurchaseSnapshot(
         paymentStatus = "failed";
         statusMessage = `Incoming transfer amount (${payment.amountCrc} CRC) does not match the expected amount (${payload.expectedAmountCrc} CRC).`;
       } else {
-        payerDisplayName = await getAvatarDisplayName(payment.fromAddress);
-        await setPurchasePaymentDetails({
-          purchaseId: payload.purchaseId,
-          payerAddress: payment.fromAddress,
-          payerDisplayName,
-          paymentTxHash: payment.txHash,
-          paymentDetectedAt: payment.timestamp,
-        });
-        const automatedOutcome = resolveAutomatedOutcome({
-          purchaseId: payload.purchaseId,
-          paymentTxHash: payment.txHash,
-          payerAddress: payment.fromAddress,
-          refundChancePercent: payload.refundChancePercent,
-          reference: payload.reference,
-        });
+        payerDisplayName =
+          trackedPurchase?.payerAddress &&
+          normalizeAddress(trackedPurchase.payerAddress) === normalizeAddress(payment.fromAddress)
+            ? trackedPurchase.payerDisplayName
+            : await getAvatarDisplayName(payment.fromAddress);
+
+        if (
+          options?.persistPaymentDetails !== false &&
+          (
+            trackedPurchase?.payerAddress !== payment.fromAddress ||
+            trackedPurchase?.payerDisplayName !== payerDisplayName ||
+            trackedPurchase?.paymentTxHash !== payment.txHash ||
+            trackedPurchase?.paymentDetectedAt !== payment.timestamp
+          )
+        ) {
+          await setPurchasePaymentDetails({
+            purchaseId: payload.purchaseId,
+            payerAddress: payment.fromAddress,
+            payerDisplayName,
+            paymentTxHash: payment.txHash,
+            paymentDetectedAt: payment.timestamp,
+          });
+        }
 
         verificationStatus = "valid";
-        paymentStatus = "paid";
         payerAddress = payment.fromAddress;
         paymentTxHash = payment.txHash;
         paymentDetectedAt = payment.timestamp;
-        statusMessage = "Payment confirmed on-chain.";
-
-        if (automatedOutcome.outcome === "lost") {
-          outcomeStatus = "lost";
-          payoutStatus = "none";
-          statusMessage = "Payment confirmed. This checkout was not selected for a refund.";
-        }
-
-        if (automatedOutcome.outcome === "won") {
-          outcomeStatus = "won";
-          payoutStatus = runtimePayout?.status ?? "queued";
-          statusMessage = "Payment confirmed. Refund flow is being executed automatically.";
-        }
-
-        if (runtimePayout?.status === "processing") {
-          payoutStatus = "processing";
-          statusMessage = "Payment confirmed. Refund transaction is processing.";
-        }
-
-        if (runtimePayout?.status === "failed") {
-          payoutStatus = "failed";
-          statusMessage = "Payment confirmed, but the automatic refund failed and needs a retry.";
-        }
-
-        if (runtimePayout?.status === "refunded") {
-          payoutStatus = "refunded";
-          payoutTxHash = runtimePayout.txHash;
-          statusMessage = "Refund confirmed on-chain.";
-        }
+        ({
+          outcomeStatus,
+          paymentStatus,
+          payoutStatus,
+          statusMessage,
+          payoutTxHash,
+        } = applyOutcomeStatus(
+          { outcomeStatus, paymentStatus, payoutStatus, statusMessage, payoutTxHash },
+          trackedPurchase,
+          payload,
+          payment.txHash,
+          payment.fromAddress,
+        ));
       }
+    }
+  } else if (paymentTxHash && payerAddress && paymentDetectedAt && paymentStatus === "paid") {
+    if (txHash && paymentTxHash.toLowerCase() !== txHash.toLowerCase()) {
+      verificationStatus = "invalid";
+      paymentStatus = "failed";
+      statusMessage = "Submitted transaction does not match this purchase.";
+    } else {
+      if (!payerDisplayName) {
+        payerDisplayName = await getAvatarDisplayName(payerAddress);
+      }
+
+      ({
+        outcomeStatus,
+        paymentStatus,
+        payoutStatus,
+        statusMessage,
+        payoutTxHash,
+      } = applyOutcomeStatus(
+        { outcomeStatus, paymentStatus, payoutStatus, statusMessage, payoutTxHash },
+        trackedPurchase,
+        payload,
+        paymentTxHash,
+        payerAddress,
+      ));
     }
   }
 
-  return {
+  const snapshot: PurchaseSnapshot = {
     ...payload,
     ticket,
     paymentStatus,
@@ -267,4 +385,21 @@ export async function buildPurchaseSnapshot(
     balanceCrc,
     statusMessage,
   };
+
+  if (options?.persistDerivedState !== false && needsDerivedStateWrite(snapshot, trackedPurchase, cancelledAt)) {
+    await setPurchaseDerivedState(payload.purchaseId, {
+      cancelledAt,
+      lastVerifiedAt: new Date().toISOString(),
+      outcomeStatus: snapshot.outcomeStatus,
+      paymentStatus: snapshot.paymentStatus,
+      payoutStatus: snapshot.payoutStatus,
+      payoutTxHash: snapshot.payoutTxHash,
+      statusMessage: snapshot.statusMessage,
+      verificationStatus: snapshot.verificationStatus,
+      verifiedAmountAttoCrc: snapshot.verifiedAmountAttoCrc,
+      verifiedAmountCrc: snapshot.verifiedAmountCrc,
+    });
+  }
+
+  return snapshot;
 }

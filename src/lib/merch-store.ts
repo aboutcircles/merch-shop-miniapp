@@ -6,8 +6,31 @@ import { getSupabaseClient } from "@/lib/supabase";
 import { merchPricingFileSchema, updateMerchPricingSchema } from "@/lib/validation";
 import type { MerchItem, MerchPricingRecord } from "@/types";
 
+const MERCH_CACHE_TTL_MS = 30_000;
+
+let cachedMerchItems: { items: MerchItem[]; expiresAt: number } | undefined;
+
 function getDefaultPricingMap() {
   return new Map(defaultMerchPricing.map((entry) => [entry.id, entry]));
+}
+
+function getCachedMerchItems() {
+  if (!cachedMerchItems || cachedMerchItems.expiresAt <= Date.now()) {
+    return undefined;
+  }
+
+  return cachedMerchItems.items;
+}
+
+function setCachedMerchItems(items: MerchItem[]) {
+  cachedMerchItems = {
+    items,
+    expiresAt: Date.now() + MERCH_CACHE_TTL_MS,
+  };
+}
+
+function clearCachedMerchItems() {
+  cachedMerchItems = undefined;
 }
 
 function assertKnownMerchItem(id: string) {
@@ -75,10 +98,16 @@ async function readPricingRecords(): Promise<MerchPricingRecord[]> {
 }
 
 export async function listMerchItems(): Promise<MerchItem[]> {
+  const cached = getCachedMerchItems();
+
+  if (cached) {
+    return cached;
+  }
+
   const pricing = await readPricingRecords();
   const pricingMap = new Map(pricing.map((entry) => [entry.id, entry]));
 
-  return merchCatalog.map((item) => {
+  const items = merchCatalog.map((item) => {
     const currentPricing = pricingMap.get(item.id) ?? getDefaultPricingMap().get(item.id)!;
 
     return {
@@ -88,6 +117,9 @@ export async function listMerchItems(): Promise<MerchItem[]> {
       maxPriceCrc: currentPricing.maxPriceCrc,
     };
   });
+
+  setCachedMerchItems(items);
+  return items;
 }
 
 export async function getMerchItemById(id: string) {
@@ -104,6 +136,7 @@ export async function updateMerchPricing(input: MerchPricingRecord) {
   assertKnownMerchItem(payload.id);
 
   return withKeyLock("merch-pricing", async () => {
+    clearCachedMerchItems();
     await upsertPricingRecords([payload]);
     return readPricingRecords();
   });

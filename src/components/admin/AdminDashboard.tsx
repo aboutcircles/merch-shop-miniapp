@@ -10,10 +10,13 @@ import { formatCrc, formatDateTime, shortenAddress } from "@/lib/utils";
 
 type AdminResponse = {
   purchases: PurchaseSnapshot[];
+  page: number;
+  pageSize: number;
   summary: {
     orgBalanceCrc: string | null;
     freeMerchGiven: number;
   };
+  totalCount: number;
   error?: string;
 };
 
@@ -36,11 +39,16 @@ export function AdminDashboard() {
   const [savingMerchId, setSavingMerchId] = useState<string | null>(null);
   const [pricingOpen, setPricingOpen] = useState(false);
   const [ledgerPage, setLedgerPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
-  const loadPurchases = useCallback(async () => {
+  const loadPurchases = useCallback(async (page: number) => {
     try {
       setLoading(true);
-      const response = await fetch("/api/admin/purchases", { cache: "no-store" });
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(pageSize),
+      });
+      const response = await fetch(`/api/admin/purchases?${params.toString()}`, { cache: "no-store" });
       const data = (await response.json()) as AdminResponse;
 
       if (!response.ok) {
@@ -49,13 +57,15 @@ export function AdminDashboard() {
 
       setPurchases(data.purchases);
       setSummary(data.summary);
+      setTotalCount(data.totalCount);
+      setLedgerPage(data.page);
       setError(null);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Unable to load purchases.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pageSize]);
 
   const loadMerchItems = useCallback(async () => {
     const response = await fetch("/api/admin/merch", { cache: "no-store" });
@@ -84,14 +94,17 @@ export function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    void loadPurchases();
     void loadMerchItems();
+  }, [loadMerchItems]);
+
+  useEffect(() => {
+    void loadPurchases(ledgerPage);
     const interval = window.setInterval(() => {
-      void loadPurchases();
+      void loadPurchases(ledgerPage);
     }, 8000);
 
     return () => window.clearInterval(interval);
-  }, [loadMerchItems, loadPurchases]);
+  }, [ledgerPage, loadPurchases]);
 
   async function handleSavePricing(itemId: string) {
     const draft = pricingDrafts[itemId];
@@ -154,12 +167,8 @@ export function AdminDashboard() {
     }));
   }
 
-  const sortedPurchases = [...purchases].sort(
-    (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
-  );
-  const totalLedgerPages = Math.max(1, Math.ceil(sortedPurchases.length / pageSize));
+  const totalLedgerPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const safeLedgerPage = Math.min(ledgerPage, totalLedgerPages);
-  const paginatedPurchases = sortedPurchases.slice((safeLedgerPage - 1) * pageSize, safeLedgerPage * pageSize);
 
   return (
     <div className="space-y-5">
@@ -173,7 +182,7 @@ export function AdminDashboard() {
         <Button
           variant="secondary"
           onClick={() => {
-            void loadPurchases();
+            void loadPurchases(ledgerPage);
             void loadMerchItems();
           }}
         >
@@ -235,7 +244,7 @@ export function AdminDashboard() {
               </tr>
             </thead>
             <tbody>
-              {paginatedPurchases.map((purchase) => {
+              {purchases.map((purchase) => {
                 const tone =
                   purchase.payoutStatus === "refunded"
                     ? "success"
@@ -272,11 +281,11 @@ export function AdminDashboard() {
             </tbody>
           </table>
         </div>
-        {sortedPurchases.length > pageSize ? (
+        {totalCount > pageSize ? (
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] px-5 py-4">
             <p className="text-sm text-[var(--muted)]">
               Showing {(safeLedgerPage - 1) * pageSize + 1}-
-              {Math.min(safeLedgerPage * pageSize, sortedPurchases.length)} of {sortedPurchases.length}
+              {Math.min(safeLedgerPage * pageSize, totalCount)} of {totalCount}
             </p>
             <div className="flex items-center gap-2">
               <Button

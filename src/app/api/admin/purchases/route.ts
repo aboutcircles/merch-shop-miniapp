@@ -1,28 +1,48 @@
 import { NextResponse } from "next/server";
 
-import { getOrgBalanceCrc } from "@/lib/circles/public";
-import { listTrackedPurchases } from "@/lib/idempotency";
-import { getPurchaseSnapshot } from "@/server/services/payment-service";
+import { parsePurchaseTicket } from "@/lib/circles/payment";
+import { getOrgBalanceCrc, getOrgTransferDataEvents } from "@/lib/circles/public";
+import { buildPurchaseSnapshot } from "@/lib/circles/verify";
+import { countFreeMerchGiven, listTrackedPurchasesPage } from "@/lib/idempotency";
+import { adminPurchasesQuerySchema } from "@/lib/validation";
 import type { PurchaseSnapshot } from "@/types";
 
-export async function GET() {
-  const tracked = await listTrackedPurchases();
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const { page: requestedPage, pageSize } = adminPurchasesQuerySchema.parse({
+    page: url.searchParams.get("page") ?? undefined,
+    pageSize: url.searchParams.get("pageSize") ?? undefined,
+  });
+  const { items, totalCount } = await listTrackedPurchasesPage(requestedPage, pageSize);
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const page = Math.min(requestedPage, totalPages);
+  const [orgBalanceCrc, freeMerchGiven, transferEvents] = await Promise.all([
+    getOrgBalanceCrc(),
+    countFreeMerchGiven(),
+    items.length ? getOrgTransferDataEvents(250) : Promise.resolve([]),
+  ]);
+
   const snapshots = await Promise.all(
-    tracked.map(async (purchase) => {
+    items.map(async (purchase) => {
       try {
-        return await getPurchaseSnapshot(purchase.ticket);
+        return await buildPurchaseSnapshot(parsePurchaseTicket(purchase.ticket), purchase.ticket, undefined, {
+          balanceCrc: orgBalanceCrc,
+          persistDerivedState: false,
+          persistPaymentDetails: false,
+          trackedPurchase: purchase,
+          transferEvents,
+        });
       } catch {
         return null;
       }
     }),
   );
-
   const purchases = snapshots.filter((purchase): purchase is PurchaseSnapshot => Boolean(purchase));
-  const orgBalanceCrc = await getOrgBalanceCrc();
-  const freeMerchGiven = purchases.filter((purchase) => purchase.outcomeStatus === "won").length;
 
   return NextResponse.json({
-    count: tracked.length,
+    page,
+    pageSize,
+    totalCount,
     summary: {
       orgBalanceCrc,
       freeMerchGiven,

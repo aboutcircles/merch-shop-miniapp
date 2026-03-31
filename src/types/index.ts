@@ -81,6 +81,20 @@ export interface RuntimeTrackedPurchase {
   ticket: string;
   createdAt: string;
   expiresAt: string;
+  cancelledAt: string | null;
+  payerAddress: string | null;
+  payerDisplayName: string | null;
+  paymentTxHash: string | null;
+  paymentDetectedAt: string | null;
+  paymentStatus: PaymentStatus;
+  outcomeStatus: OutcomeStatus;
+  payoutStatus: PayoutStatus;
+  verificationStatus: VerificationStatus;
+  verifiedAmountCrc: string | null;
+  verifiedAmountAttoCrc: string | null;
+  payoutTxHash: string | null;
+  statusMessage: string;
+  lastVerifiedAt: string | null;
 }
 
 export interface RuntimePayoutRecord {

@@ -5,18 +5,26 @@ import { useCallback, useEffect, useState } from "react";
 import type { PurchaseSnapshot } from "@/types";
 import { PaymentQrCard } from "@/components/checkout/PaymentQrCard";
 
-async function fetchSnapshot(id: string, ticket: string, txHash?: string) {
-  const response = await fetch("/api/payment/verify", {
-    method: "POST",
-    cache: "no-store",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      ticket,
-      txHash,
-    }),
-  });
+function shouldVerifyPayment(snapshot: PurchaseSnapshot) {
+  return snapshot.paymentStatus === "awaiting_payment";
+}
+
+async function fetchSnapshot(id: string, ticket: string, currentSnapshot: PurchaseSnapshot, txHash?: string) {
+  const response = shouldVerifyPayment(currentSnapshot)
+    ? await fetch("/api/payment/verify", {
+        method: "POST",
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ticket,
+          txHash,
+        }),
+      })
+    : await fetch(`/api/purchase/${id}?${new URLSearchParams({ ticket, ...(txHash ? { txHash } : {}) }).toString()}`, {
+        cache: "no-store",
+      });
   const data = (await response.json()) as PurchaseSnapshot & { error?: string };
 
   if (!response.ok) {
@@ -50,14 +58,14 @@ export function PurchaseStatusClient({
     setError(null);
 
     try {
-      const nextSnapshot = await fetchSnapshot(purchaseId, ticket, txHash);
+      const nextSnapshot = await fetchSnapshot(purchaseId, ticket, snapshot, txHash);
       setSnapshot(nextSnapshot);
     } catch (refreshError) {
       setError(refreshError instanceof Error ? refreshError.message : "Unable to refresh purchase.");
     } finally {
       setPending(false);
     }
-  }, [purchaseId, ticket]);
+  }, [purchaseId, snapshot, ticket]);
 
   useEffect(() => {
     if (
