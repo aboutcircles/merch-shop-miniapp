@@ -1,6 +1,8 @@
 import "server-only";
 
-import type { Address } from "@aboutcircles/sdk-types";
+import type { Address, TokenBalance } from "@aboutcircles/sdk-types";
+import type { TransactionReceipt } from "viem";
+import { formatUnits } from "viem";
 
 import { getEnv } from "@/lib/env";
 import { createTreasurySdk, getCirclesPublicClient, getTreasuryExecutionAddress } from "@/lib/circles/server";
@@ -27,6 +29,90 @@ function formatRefundError(error: unknown) {
   }
 
   return message;
+}
+
+function formatCrcAmount(value: bigint) {
+  return `${formatUnits(value, 18)} CRC`;
+}
+
+function normalizeAddress(value: string) {
+  return value.trim().toLowerCase();
+}
+
+const SUPPORTED_REFUND_TOKEN_ADDRESSES = [
+  "0x43322ADF67D969219d014D60C860966269F4F93E",
+  "0xC19BC204eb1c1D5B3FE500E5E5dfaBaB625F286c",
+] as const;
+
+const SUPPORTED_REFUND_TOKEN_SET = new Set(
+  SUPPORTED_REFUND_TOKEN_ADDRESSES.map((address) => normalizeAddress(address)),
+);
+
+function isSupportedRefundTokenAddress(tokenAddress: string) {
+  return SUPPORTED_REFUND_TOKEN_SET.has(normalizeAddress(tokenAddress));
+}
+
+function formatSupportedRefundTokens() {
+  return SUPPORTED_REFUND_TOKEN_ADDRESSES.join(", ");
+}
+
+function getSpendableErc1155Balances(balances: TokenBalance[]) {
+  return balances
+    .filter(
+      (balance) =>
+        balance.isErc1155 &&
+        !balance.isWrapped &&
+        balance.attoCircles > 0n &&
+        isSupportedRefundTokenAddress(balance.tokenAddress),
+    )
+    .sort((left, right) => {
+      if (left.attoCircles === right.attoCircles) {
+        return left.tokenId < right.tokenId ? -1 : left.tokenId > right.tokenId ? 1 : 0;
+      }
+
+      return left.attoCircles > right.attoCircles ? -1 : 1;
+    });
+}
+
+function planRefundDirectTransfers(balances: TokenBalance[], targetAmountAttoCircles: bigint) {
+  const spendableBalances = getSpendableErc1155Balances(balances);
+  const totalAvailableAttoCircles = spendableBalances.reduce((total, balance) => total + balance.attoCircles, 0n);
+
+  if (totalAvailableAttoCircles < targetAmountAttoCircles) {
+    throw new Error(
+      `Refund execution wallet does not have enough supported ERC-1155 balance to cover the refund. Required ${formatCrcAmount(targetAmountAttoCircles)}, available ${formatCrcAmount(totalAvailableAttoCircles)} across supported token ids ${formatSupportedRefundTokens()}.`,
+    );
+  }
+
+  let remainingAttoCircles = targetAmountAttoCircles;
+  const transfers: Array<{ tokenAddress: Address; amountAttoCircles: bigint }> = [];
+
+  for (const balance of spendableBalances) {
+    if (remainingAttoCircles <= 0n) {
+      break;
+    }
+
+    if (balance.attoCircles <= remainingAttoCircles) {
+      transfers.push({
+        tokenAddress: balance.tokenAddress,
+        amountAttoCircles: balance.attoCircles,
+      });
+      remainingAttoCircles -= balance.attoCircles;
+      continue;
+    }
+
+    transfers.push({
+      tokenAddress: balance.tokenAddress,
+      amountAttoCircles: remainingAttoCircles,
+    });
+    remainingAttoCircles = 0n;
+  }
+
+  if (remainingAttoCircles > 0n) {
+    throw new Error("Refund planning failed while building the direct ERC-1155 transfer set.");
+  }
+
+  return transfers;
 }
 
 export async function executeRefund(snapshot: PurchaseSnapshot): Promise<PayoutExecutionResult> {
@@ -57,14 +143,20 @@ export async function executeRefund(snapshot: PurchaseSnapshot): Promise<PayoutE
       const env = getEnv();
       const sdk = await createTreasurySdk();
       const avatar = await sdk.getAvatar(env.CIRCLES_ORG_ADDRESS as Address);
+      const balances = await sdk.data.getBalances(env.CIRCLES_ORG_ADDRESS as Address);
+      const transfers = planRefundDirectTransfers(balances, BigInt(verifiedAmountAttoCrc));
+      let receipt: TransactionReceipt | null = null;
 
-      const receipt = await avatar.transfer.advanced(
-        snapshot.payerAddress as Address,
-        BigInt(verifiedAmountAttoCrc),
-      );
+      for (const transfer of transfers) {
+        receipt = await avatar.transfer.direct(
+          snapshot.payerAddress as Address,
+          transfer.amountAttoCircles,
+          transfer.tokenAddress,
+        );
+      }
 
       const txHash =
-        "transactionHash" in receipt && typeof receipt.transactionHash === "string"
+        receipt && typeof receipt.transactionHash === "string"
           ? receipt.transactionHash
           : null;
 
