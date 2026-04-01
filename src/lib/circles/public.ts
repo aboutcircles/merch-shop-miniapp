@@ -3,7 +3,7 @@ import "server-only";
 import { hubV2Abi } from "@aboutcircles/sdk-abis/hubV2";
 import { Sdk } from "@aboutcircles/sdk";
 import type { Address } from "@aboutcircles/sdk-types";
-import { createPublicClient, decodeEventLog, http } from "viem";
+import { createPublicClient, decodeEventLog, formatUnits, http } from "viem";
 
 import { circlesChain, getRuntimeCirclesConfig } from "@/lib/circles/config";
 import { getEnv } from "@/lib/env";
@@ -215,6 +215,16 @@ export async function getOrgBalanceCrc() {
     const balances = await getReadOnlySdk().rpc.balance.getTokenBalances(env.CIRCLES_ORG_ADDRESS as Address);
     const totalAttoCrc = balances.reduce((sum, balance) => sum + BigInt(balance.attoCrc ?? "0"), 0n);
     return fromAttoCrc(totalAttoCrc);
+  } catch {
+    return null;
+  }
+}
+
+export async function getOrgBalanceCircles() {
+  try {
+    const env = getEnv();
+    const totalAttoCircles = await getReadOnlySdk().rpc.balance.getTotalBalance(env.CIRCLES_ORG_ADDRESS as Address, true);
+    return formatUnits(totalAttoCircles, 18);
   } catch {
     return null;
   }

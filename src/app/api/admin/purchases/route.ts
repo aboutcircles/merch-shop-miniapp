@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { parsePurchaseTicket } from "@/lib/circles/payment";
-import { getOrgBalanceCrc, getOrgTransferDataEvents } from "@/lib/circles/public";
+import { getOrgBalanceCircles, getOrgBalanceCrc, getOrgTransferDataEvents } from "@/lib/circles/public";
 import { buildPurchaseSnapshot } from "@/lib/circles/verify";
 import { countFreeMerchGiven, listTrackedPurchasesPage } from "@/lib/idempotency";
 import { adminPurchasesQuerySchema } from "@/lib/validation";
@@ -16,7 +16,8 @@ export async function GET(request: Request) {
   const { items, totalCount } = await listTrackedPurchasesPage(requestedPage, pageSize);
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const page = Math.min(requestedPage, totalPages);
-  const [orgBalanceCrc, freeMerchGiven, transferEvents] = await Promise.all([
+  const [orgBalanceCircles, orgBalanceCrc, freeMerchGiven, transferEvents] = await Promise.all([
+    getOrgBalanceCircles(),
     getOrgBalanceCrc(),
     countFreeMerchGiven(),
     items.length ? getOrgTransferDataEvents(250) : Promise.resolve([]),
@@ -44,7 +45,7 @@ export async function GET(request: Request) {
     pageSize,
     totalCount,
     summary: {
-      orgBalanceCrc,
+      orgBalanceCircles,
       freeMerchGiven,
     },
     purchases,

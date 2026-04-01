@@ -13,7 +13,7 @@ type AdminResponse = {
   page: number;
   pageSize: number;
   summary: {
-    orgBalanceCrc: string | null;
+    orgBalanceCircles: string | null;
     freeMerchGiven: number;
   };
   totalCount: number;
@@ -31,7 +31,7 @@ export function AdminDashboard() {
   const [merchItems, setMerchItems] = useState<MerchItem[]>([]);
   const [pricingDrafts, setPricingDrafts] = useState<Record<string, { minPriceCrc: string; priceCrc: string; maxPriceCrc: string }>>({});
   const [summary, setSummary] = useState<AdminResponse["summary"]>({
-    orgBalanceCrc: null,
+    orgBalanceCircles: null,
     freeMerchGiven: 0,
   });
   const [loading, setLoading] = useState(true);
@@ -210,7 +210,7 @@ export function AdminDashboard() {
         <Panel className="space-y-2 p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Org balance</p>
           <p className="text-3xl font-semibold text-[var(--ink)]">
-            {summary.orgBalanceCrc ? `${formatCrc(summary.orgBalanceCrc)} CRC` : "Unavailable"}
+            {summary.orgBalanceCircles ? `${formatCrc(summary.orgBalanceCircles, 2)} Circles` : "Unavailable"}
           </p>
         </Panel>
         <Panel className="space-y-2 p-5">
