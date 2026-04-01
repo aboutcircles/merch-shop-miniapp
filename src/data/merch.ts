@@ -10,7 +10,7 @@ export const merchCatalog: Array<Omit<MerchItem, "priceCrc" | "minPriceCrc" | "m
     name: "Gnosis Hoodie",
     image: "/merch/gnosis-hoodie.png",
     stock: 10,
-    isActive: false,
+    isActive: true,
     tag: defaultTag,
     createdAt: now,
     updatedAt: now,
