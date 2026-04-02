@@ -76,7 +76,7 @@ export const merchCatalog: Array<Omit<MerchItem, "priceCrc" | "minPriceCrc" | "m
     name: "Fork Banks Socks - Cream",
     image: "/merch/socks-cream.png",
     stock: 20,
-    isActive: true,
+    isActive: false,
     tag: defaultTag,
     createdAt: now,
     updatedAt: now,
