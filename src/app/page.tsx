@@ -2,12 +2,15 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { StorefrontExperience } from "@/components/merch/StorefrontExperience";
+import { DemoDisclaimerBanner } from "@/components/ui/DemoDisclaimerBanner";
+import { isAppEnvConfigured } from "@/lib/env";
 import { listMerchItems } from "@/lib/merch-store";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const merchItems = await listMerchItems();
+  const checkoutConfigured = isAppEnvConfigured();
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-6 px-4 py-5 md:px-8 md:py-8">
@@ -34,7 +37,12 @@ export default async function HomePage() {
         </Link>
       </header>
 
-      <StorefrontExperience items={merchItems.filter((item) => item.isActive)} />
+      <DemoDisclaimerBanner />
+
+      <StorefrontExperience
+        items={merchItems.filter((item) => item.isActive)}
+        checkoutConfigured={checkoutConfigured}
+      />
     </main>
   );
 }

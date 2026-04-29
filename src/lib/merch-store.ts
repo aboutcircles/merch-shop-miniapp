@@ -39,6 +39,28 @@ function assertKnownMerchItem(id: string) {
   }
 }
 
+function getDefaultMerchItems() {
+  const pricingMap = getDefaultPricingMap();
+
+  return merchCatalog.map((item) => {
+    const currentPricing = pricingMap.get(item.id)!;
+
+    return {
+      ...item,
+      priceCrc: currentPricing.priceCrc,
+      minPriceCrc: currentPricing.minPriceCrc,
+      maxPriceCrc: currentPricing.maxPriceCrc,
+    };
+  });
+}
+
+function shouldUseLocalCatalogFallback() {
+  return (
+    process.env.NODE_ENV === "development" &&
+    (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY)
+  );
+}
+
 async function upsertPricingRecords(records: MerchPricingRecord[]) {
   if (!records.length) {
     return;
@@ -102,6 +124,12 @@ export async function listMerchItems(): Promise<MerchItem[]> {
 
   if (cached) {
     return cached;
+  }
+
+  if (shouldUseLocalCatalogFallback()) {
+    const items = getDefaultMerchItems();
+    setCachedMerchItems(items);
+    return items;
   }
 
   const pricing = await readPricingRecords();

@@ -9,7 +9,13 @@ import { Button } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
 import { cn } from "@/lib/utils";
 
-export function StorefrontExperience({ items }: { items: MerchItem[] }) {
+export function StorefrontExperience({
+  items,
+  checkoutConfigured,
+}: {
+  items: MerchItem[];
+  checkoutConfigured: boolean;
+}) {
   const [selectedItem, setSelectedItem] = useState<MerchItem | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -106,7 +112,11 @@ export function StorefrontExperience({ items }: { items: MerchItem[] }) {
         </Panel>
       </div>
 
-      <ProductSheet item={selectedItem} onClose={() => setSelectedItem(null)} />
+      <ProductSheet
+        item={selectedItem}
+        checkoutConfigured={checkoutConfigured}
+        onClose={() => setSelectedItem(null)}
+      />
     </>
   );
 }

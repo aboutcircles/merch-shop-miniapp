@@ -6,29 +6,34 @@ import { useRouter } from "next/navigation";
 
 import type { MerchItem, PurchaseIntent } from "@/types";
 import { Button } from "@/components/ui/Button";
+import { DemoDisclaimerBanner } from "@/components/ui/DemoDisclaimerBanner";
 import { Panel } from "@/components/ui/Panel";
 import { calculateRefundChancePercentFromRatio } from "@/lib/refund-chance";
 import { clamp } from "@/lib/utils";
 
 export function ProductSheet({
   item,
+  checkoutConfigured,
   onClose,
 }: {
   item: MerchItem | null;
+  checkoutConfigured: boolean;
   onClose: () => void;
 }) {
   if (!item) {
     return null;
   }
 
-  return <ProductSheetInner item={item} onClose={onClose} />;
+  return <ProductSheetInner item={item} checkoutConfigured={checkoutConfigured} onClose={onClose} />;
 }
 
 function ProductSheetInner({
   item,
+  checkoutConfigured,
   onClose,
 }: {
   item: MerchItem;
+  checkoutConfigured: boolean;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -270,6 +275,15 @@ function ProductSheetInner({
               <span className="text-2xl">{currentItem.name}</span>
             </div>
 
+            <DemoDisclaimerBanner compact />
+
+            {!checkoutConfigured ? (
+              <div className="rounded-[20px] border border-[var(--line)] bg-white/92 px-4 py-3 text-sm leading-6 text-[var(--muted)]">
+                Checkout is disabled in local development until `.env.local` contains the required Supabase,
+                Circles, signing, and admin values.
+              </div>
+            ) : null}
+
             {error ? (
               <div className="rounded-[20px] bg-[var(--error-bg)] px-4 py-3 text-sm text-[var(--error-ink)]">
                 {error}
@@ -277,7 +291,12 @@ function ProductSheetInner({
             ) : null}
 
             <div className="mt-auto flex flex-col gap-3 sm:flex-row">
-              <Button block className="h-14 text-base" disabled={loading} onClick={handlePurchase}>
+              <Button
+                block
+                className="h-14 text-base"
+                disabled={loading || !checkoutConfigured}
+                onClick={handlePurchase}
+              >
                 {loading ? "Creating checkout..." : "Continue to Payment"}
               </Button>
               <Button block variant="secondary" className="h-14 text-base" onClick={onClose}>

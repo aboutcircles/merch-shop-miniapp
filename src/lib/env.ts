@@ -50,3 +50,7 @@ export function getEnv(): AppEnv {
 
   return cachedEnv;
 }
+
+export function isAppEnvConfigured() {
+  return envSchema.safeParse(readRawEnv()).success;
+}
