@@ -20,10 +20,10 @@ export default async function HomePage() {
             <Image src="/circles-logo.svg" alt="Circles logo" width={44} height={44} priority />
           </div>
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Circles</p>
-            <h1 className="mt-1 text-3xl font-semibold tracking-tight text-[var(--ink)] md:text-4xl">
+            <h1 className="text-3xl font-semibold tracking-tight text-[var(--ink)] md:text-4xl">
               Gnosis Merch Shop
             </h1>
+            <p className="mt-1 text-sm font-semibold text-[var(--accent)]">Powered by Circles</p>
           </div>
         </div>
 

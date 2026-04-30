@@ -7,6 +7,7 @@ import {
   getTransferAmountForTx,
   type CirclesTransferDataEvent,
 } from "@/lib/circles/public";
+import { transferDataMatchesReference } from "@/lib/circles/transfer-data";
 import { getTrackedPurchase, setPurchaseDerivedState, setPurchasePaymentDetails } from "@/lib/idempotency";
 import { resolveAutomatedOutcome } from "@/server/services/outcome-service";
 import type {
@@ -19,87 +20,6 @@ import type {
 
 function normalizeAddress(value: string) {
   return value.trim().toLowerCase();
-}
-
-function normalizeString(value: string) {
-  return value.trim().toLowerCase();
-}
-
-function normalizeHex(value: string): string | null {
-  const trimmed = normalizeString(value);
-
-  if (!trimmed) {
-    return null;
-  }
-
-  if (trimmed.startsWith("\\x")) {
-    return `0x${trimmed.slice(2)}`;
-  }
-
-  if (trimmed.startsWith("0x")) {
-    return trimmed;
-  }
-
-  if (/^[0-9a-f]+$/i.test(trimmed)) {
-    return `0x${trimmed}`;
-  }
-
-  return null;
-}
-
-function utf8ToHex(value: string) {
-  return Array.from(new TextEncoder().encode(value))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-function hexToUtf8(hexValue: string): string | null {
-  try {
-    const normalized = hexValue.startsWith("0x") ? hexValue.slice(2) : hexValue;
-
-    if (!normalized || normalized.length % 2 !== 0 || !/^[0-9a-f]+$/i.test(normalized)) {
-      return null;
-    }
-
-    const bytes = new Uint8Array(normalized.match(/.{1,2}/g)!.map((byte) => Number.parseInt(byte, 16)));
-    return new TextDecoder().decode(bytes);
-  } catch {
-    return null;
-  }
-}
-
-function eventMatchesData(dataField: string, dataValue: string) {
-  const target = normalizeString(dataValue);
-
-  if (!target) {
-    return false;
-  }
-
-  const targetHex = utf8ToHex(target);
-  const candidates = new Set<string>([target, targetHex, `0x${targetHex}`]);
-
-  if (target.startsWith("0x")) {
-    candidates.add(target.slice(2));
-  }
-
-  const eventRaw = normalizeString(dataField);
-
-  if (candidates.has(eventRaw)) {
-    return true;
-  }
-
-  const eventHex = normalizeHex(eventRaw);
-
-  if (!eventHex) {
-    return false;
-  }
-
-  if (candidates.has(eventHex) || candidates.has(eventHex.slice(2))) {
-    return true;
-  }
-
-  const eventUtf8 = hexToUtf8(eventHex);
-  return eventUtf8 ? candidates.has(normalizeString(eventUtf8)) : false;
 }
 
 function parseTimestamp(value: string) {
@@ -139,7 +59,7 @@ function findMatchingPayment(
   return rows
     .filter((row) => normalizeAddress(row.to) === normalizeAddress(payload.receivingAddress))
     .filter((row) => (txHash ? row.transactionHash.toLowerCase() === txHash.toLowerCase() : true))
-    .find((row) => eventMatchesData(row.data, payload.reference));
+    .find((row) => transferDataMatchesReference(row.data, payload.reference));
 }
 
 function applyOutcomeStatus(

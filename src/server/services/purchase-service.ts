@@ -4,6 +4,7 @@ import { createPurchaseIntent } from "@/lib/circles/payment";
 import { trackPurchase } from "@/lib/idempotency";
 import { getMerchItemById } from "@/lib/merch-store";
 import { clamp } from "@/lib/utils";
+import { ensureCirclesPaymentWatcher } from "@/server/services/circles-wss-listener";
 
 export async function createPurchaseForItem(merchItemId: string, selectedAmountCrc: string) {
   const item = await getMerchItemById(merchItemId);
@@ -28,6 +29,7 @@ export async function createPurchaseForItem(merchItemId: string, selectedAmountC
 
   const intent = createPurchaseIntent(item, amount.toFixed(2).replace(/\.00$/, ""));
   await trackPurchase(intent);
+  ensureCirclesPaymentWatcher();
 
   return {
     item,

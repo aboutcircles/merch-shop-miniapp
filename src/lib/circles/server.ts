@@ -2,9 +2,9 @@ import "server-only";
 
 import { Sdk } from "@aboutcircles/sdk";
 import { SafeContractRunner } from "@aboutcircles/sdk-runner";
-import type { Address, Hex, TransactionRequest } from "@aboutcircles/sdk-types";
+import type { Address, Hex as SdkHex, TransactionRequest } from "@aboutcircles/sdk-types";
 import { createPublicClient, createWalletClient, http } from "viem";
-import type { PublicClient } from "viem";
+import type { Address as ViemAddress, Hex as ViemHex, PublicClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
 import { getRuntimeCirclesConfig, circlesChain } from "@/lib/circles/config";
@@ -22,7 +22,7 @@ type ContractRunner = {
 
 export function getTreasuryExecutionAddress() {
   const env = getEnv();
-  const account = privateKeyToAccount(env.CIRCLES_TREASURY_PRIVATE_KEY as Hex);
+  const account = privateKeyToAccount(env.CIRCLES_TREASURY_PRIVATE_KEY as ViemHex);
 
   return account.address;
 }
@@ -38,7 +38,7 @@ export function getCirclesPublicClient() {
 
 export async function createTreasurySdk() {
   const env = getEnv();
-  const account = privateKeyToAccount(env.CIRCLES_TREASURY_PRIVATE_KEY as Hex);
+  const account = privateKeyToAccount(env.CIRCLES_TREASURY_PRIVATE_KEY as ViemHex);
   const inferredSafeAddress: Address | undefined =
     (env.CIRCLES_TREASURY_SAFE_ADDRESS as Address | undefined) ??
     (account.address.toLowerCase() !== env.CIRCLES_ORG_ADDRESS.toLowerCase()
@@ -48,7 +48,7 @@ export async function createTreasurySdk() {
   if (inferredSafeAddress) {
     const runner = await SafeContractRunner.create(
       env.CIRCLES_RPC_URL,
-      env.CIRCLES_TREASURY_PRIVATE_KEY as Hex,
+      env.CIRCLES_TREASURY_PRIVATE_KEY as SdkHex,
       inferredSafeAddress,
       circlesChain,
     );
@@ -73,12 +73,16 @@ export async function createTreasurySdk() {
       return publicClient.estimateGas({
         account,
         ...tx,
+        data: tx.data as ViemHex,
+        to: tx.to as ViemAddress,
       });
     },
     async call(tx) {
       const result = await publicClient.call({
         account,
         ...tx,
+        data: tx.data as ViemHex,
+        to: tx.to as ViemAddress,
       });
 
       return result.data ?? "0x";
@@ -93,9 +97,9 @@ export async function createTreasurySdk() {
         const hash = await walletClient.sendTransaction({
           account,
           chain: circlesChain,
-          to: tx.to,
+          to: tx.to as ViemAddress,
           value: tx.value,
-          data: tx.data,
+          data: tx.data as ViemHex,
           gas: tx.gas,
           nonce: tx.nonce,
           gasPrice: tx.gasPrice,

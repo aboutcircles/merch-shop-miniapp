@@ -4,6 +4,7 @@ import { executeRefund } from "@/lib/circles/payout";
 import { parsePurchaseTicket } from "@/lib/circles/payment";
 import { buildPurchaseSnapshot, type BuildPurchaseSnapshotOptions } from "@/lib/circles/verify";
 import { getCachedSnapshot, setCachedSnapshot } from "@/lib/purchase-cache";
+import { publishPurchaseSnapshot } from "@/server/services/purchase-events";
 
 function getSnapshotCacheKey(ticket: string, txHash?: string) {
   return `${ticket}:${txHash ?? ""}`;
@@ -65,8 +66,11 @@ export async function verifyAndProcessPurchase(ticket: string, txHash?: string, 
       delete nextOptions.trackedPurchase;
     }
 
-    return buildPurchaseSnapshot(payload, ticket, txHash, nextOptions);
+    const refundedSnapshot = await buildPurchaseSnapshot(payload, ticket, txHash, nextOptions);
+    publishPurchaseSnapshot(refundedSnapshot);
+    return refundedSnapshot;
   }
 
+  publishPurchaseSnapshot(snapshot);
   return snapshot;
 }

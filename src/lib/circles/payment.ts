@@ -6,6 +6,7 @@ import type { MerchItem, PurchaseIntent, PurchaseTicketPayload } from "@/types";
 import { getEnv } from "@/lib/env";
 import { calculateRefundChancePercentForAmount } from "@/lib/refund-chance";
 import { fromAttoCrc, toAttoCrc } from "@/lib/utils";
+import { encodePaymentReferenceTransferData } from "@/lib/circles/transfer-data";
 
 const PURCHASE_TOKEN_VERSION = 1;
 
@@ -40,7 +41,11 @@ export function calculateRefundChancePercent(item: MerchItem, selectedAmountCrc:
 }
 
 function buildQrPayload(payload: PurchaseTicketPayload) {
-  return generatePaymentLink(payload.receivingAddress, payload.selectedAmountCrc, payload.reference);
+  return generatePaymentLink(
+    payload.receivingAddress,
+    payload.selectedAmountCrc,
+    encodePaymentReferenceTransferData(payload.reference),
+  );
 }
 
 export function createPurchaseIntent(item: MerchItem, selectedAmountCrc: string): PurchaseIntent {

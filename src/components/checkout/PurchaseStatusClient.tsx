@@ -1,41 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import type { MerchItem, PurchaseSnapshot } from "@/types";
 import { PaymentQrCard } from "@/components/checkout/PaymentQrCard";
 
-function shouldVerifyPayment(snapshot: PurchaseSnapshot) {
-  return snapshot.paymentStatus === "awaiting_payment";
-}
-
-async function fetchSnapshot(id: string, ticket: string, currentSnapshot: PurchaseSnapshot, txHash?: string) {
-  const response = shouldVerifyPayment(currentSnapshot)
-    ? await fetch("/api/payment/verify", {
-        method: "POST",
-        cache: "no-store",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ticket,
-          txHash,
-        }),
-      })
-    : await fetch(`/api/purchase/${id}?${new URLSearchParams({ ticket, ...(txHash ? { txHash } : {}) }).toString()}`, {
-        cache: "no-store",
-      });
-  const data = (await response.json()) as PurchaseSnapshot & { error?: string };
-
-  if (!response.ok) {
-    throw new Error(data.error ?? "Unable to load purchase.");
-  }
-
-  if (data.purchaseId !== id) {
-    throw new Error("Purchase id mismatch.");
-  }
-
-  return data;
+function isTerminalSnapshot(snapshot: PurchaseSnapshot) {
+  return (
+    snapshot.paymentStatus === "expired" ||
+    snapshot.paymentStatus === "failed" ||
+    snapshot.paymentStatus === "cancelled" ||
+    snapshot.outcomeStatus === "lost" ||
+    snapshot.payoutStatus === "refunded"
+  );
 }
 
 export function PurchaseStatusClient({
@@ -52,40 +29,56 @@ export function PurchaseStatusClient({
   developerPageUrl: string;
 }) {
   const [snapshot, setSnapshot] = useState(initialSnapshot);
-  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const refreshSnapshot = useCallback(async (txHash?: string) => {
-    setPending(true);
-    setError(null);
-
-    try {
-      const nextSnapshot = await fetchSnapshot(purchaseId, ticket, snapshot, txHash);
-      setSnapshot(nextSnapshot);
-    } catch (refreshError) {
-      setError(refreshError instanceof Error ? refreshError.message : "Unable to refresh purchase.");
-    } finally {
-      setPending(false);
-    }
-  }, [purchaseId, snapshot, ticket]);
+  const terminal = isTerminalSnapshot(snapshot);
 
   useEffect(() => {
-    if (
-      snapshot.paymentStatus === "expired" ||
-      snapshot.paymentStatus === "failed" ||
-      snapshot.paymentStatus === "cancelled" ||
-      snapshot.outcomeStatus === "lost" ||
-      snapshot.payoutStatus === "refunded"
-    ) {
+    if (terminal) {
       return;
     }
 
-    const interval = window.setInterval(() => {
-      void refreshSnapshot();
-    }, 5000);
+    let closed = false;
+    const params = new URLSearchParams({ ticket });
+    const source = new EventSource(`/api/purchase/${purchaseId}/events?${params.toString()}`);
 
-    return () => window.clearInterval(interval);
-  }, [refreshSnapshot, snapshot]);
+    source.onopen = () => {
+      if (closed) {
+        return;
+      }
+
+      setError(null);
+    };
+
+    source.onmessage = (event) => {
+      if (closed) {
+        return;
+      }
+
+      try {
+        const nextSnapshot = JSON.parse(event.data) as PurchaseSnapshot;
+
+        if (nextSnapshot.purchaseId === purchaseId) {
+          setSnapshot(nextSnapshot);
+          setError(null);
+        }
+      } catch {
+        setError("Unable to read purchase status update.");
+      }
+    };
+
+    source.onerror = () => {
+      if (closed) {
+        return;
+      }
+
+      setError("Live payment updates disconnected. Reconnecting...");
+    };
+
+    return () => {
+      closed = true;
+      source.close();
+    };
+  }, [purchaseId, terminal, ticket]);
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-4xl flex-col justify-center gap-6 px-4 py-6 md:px-8 md:py-8">
@@ -97,7 +90,7 @@ export function PurchaseStatusClient({
 
       <PaymentQrCard
         snapshot={snapshot}
-        pending={pending}
+        pending={false}
         purchasedItem={purchasedItem}
         developerPageUrl={developerPageUrl}
       />
