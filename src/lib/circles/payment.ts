@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import type { MerchItem, PurchaseIntent, PurchaseTicketPayload } from "@/types";
 import { getEnv } from "@/lib/env";
 import { calculateRefundChancePercentForAmount } from "@/lib/refund-chance";
+import { timingSafeEqualStrings } from "@/lib/secure-compare";
 import { fromAttoCrc, toAttoCrc } from "@/lib/utils";
 import { encodePaymentReferenceTransferData } from "@/lib/circles/transfer-data";
 
@@ -96,7 +97,7 @@ export function createPurchaseIntent(item: MerchItem, selectedAmountCrc: string)
 export function parsePurchaseTicket(ticket: string): PurchaseTicketPayload {
   const [encodedPayload, signature] = ticket.split(".");
 
-  if (!encodedPayload || !signature || signPayload(encodedPayload) !== signature) {
+  if (!encodedPayload || !signature || !timingSafeEqualStrings(signPayload(encodedPayload), signature)) {
     throw new Error("Invalid purchase ticket.");
   }
 

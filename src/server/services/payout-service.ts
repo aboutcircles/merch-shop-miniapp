@@ -14,5 +14,11 @@ export async function runRefund(ticket: string) {
     throw new Error("Refund can only run after the payer address is identified.");
   }
 
+  if (snapshot.payoutStatus === "needs_review") {
+    throw new Error(
+      "Refund is in needs_review state because a previous attempt sent a partial transfer. Resolve manually before retrying.",
+    );
+  }
+
   return executeRefund(snapshot);
 }

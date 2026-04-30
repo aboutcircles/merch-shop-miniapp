@@ -30,7 +30,7 @@ function getRefundStatus(purchase: RuntimeTrackedPurchase): AdminTransactionStat
     return "confirmed";
   }
 
-  if (purchase.payoutStatus === "failed") {
+  if (purchase.payoutStatus === "failed" || purchase.payoutStatus === "needs_review") {
     return "failed";
   }
 

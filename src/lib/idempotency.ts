@@ -17,7 +17,7 @@ declare global {
   var __ethccBoothRuntime: AppRuntimeState | undefined;
 }
 
-const PAYOUT_PROCESSING_STALE_MS = 5 * 60 * 1000;
+const PAYOUT_PROCESSING_STALE_MS = 30 * 60 * 1000;
 const PURCHASE_SELECT =
   "purchase_id, reference, merch_item_id, merch_name, ticket, created_at, expires_at, cancelled_at, payer_address, payer_display_name, payment_tx_hash, payment_detected_at, payment_status, outcome_status, payout_status, verification_status, verified_amount_crc, verified_amount_atto_crc, payout_tx_hash, status_message, last_verified_at";
 
@@ -397,7 +397,9 @@ export async function setPayoutRecord(record: RuntimePayoutRecord) {
           ? "Refund confirmed on-chain."
           : record.status === "failed"
             ? "Payment confirmed, but the automatic refund failed and needs a retry."
-            : undefined,
+            : record.status === "needs_review"
+              ? "Refund partially completed. Manual review required before retrying."
+              : undefined,
   });
 }
 
@@ -463,30 +465,38 @@ export async function claimPayoutProcessing(purchaseId: string) {
   }
 
   const staleBefore = new Date(Date.now() - PAYOUT_PROCESSING_STALE_MS).toISOString();
-  const staleAttempt = await client
+  const staleDemotionRecord = {
+    purchase_id: purchaseId,
+    status: "needs_review" as const,
+    tx_hash: null,
+    error_message:
+      "Refund was claimed by a worker but never completed within the safety window. On-chain status must be verified manually before retrying.",
+    updated_at: updatedAt,
+  };
+  const staleDemotion = await client
     .from("payout_records")
-    .update(processingRecord)
+    .update(staleDemotionRecord)
     .eq("purchase_id", purchaseId)
     .eq("status", "processing")
     .lt("updated_at", staleBefore)
     .select("purchase_id, status, tx_hash, error_message, updated_at")
     .maybeSingle();
 
-  if (staleAttempt.error) {
-    throw new Error(`Unable to claim payout state: ${staleAttempt.error.message}`);
+  if (staleDemotion.error) {
+    throw new Error(`Unable to demote stale payout state: ${staleDemotion.error.message}`);
   }
 
-  if (staleAttempt.data) {
+  if (staleDemotion.data) {
     await updatePurchaseState(purchaseId, {
       lastVerifiedAt: updatedAt,
-      payoutStatus: "processing",
+      payoutStatus: "needs_review",
       payoutTxHash: null,
-      statusMessage: "Payment confirmed. Refund transaction is processing.",
+      statusMessage: "Refund stalled. Manual review required before retrying.",
     });
 
     return {
-      claimed: true,
-      record: mapPayoutRecord(staleAttempt.data as PayoutRecordRow),
+      claimed: false,
+      record: mapPayoutRecord(staleDemotion.data as PayoutRecordRow),
     };
   }
 

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getEnv } from "@/lib/env";
+import { timingSafeEqualStrings } from "@/lib/secure-compare";
 import { NextResponse } from "next/server";
 
 function decodeBasicAuth(headers: Headers) {
@@ -25,7 +26,13 @@ function decodeBasicAuth(headers: Headers) {
 
 export function isInternalRequest(headers: Headers) {
   const env = getEnv();
-  return headers.get("x-internal-token") === env.INTERNAL_API_TOKEN;
+  const provided = headers.get("x-internal-token");
+
+  if (!provided) {
+    return false;
+  }
+
+  return timingSafeEqualStrings(provided, env.INTERNAL_API_TOKEN);
 }
 
 export function isAdminRequest(headers: Headers) {
@@ -36,9 +43,9 @@ export function isAdminRequest(headers: Headers) {
     return false;
   }
 
-  return (
-    credentials.username === env.ADMIN_USERNAME && credentials.password === env.ADMIN_PASSWORD
-  );
+  const usernameMatches = timingSafeEqualStrings(credentials.username, env.ADMIN_USERNAME);
+  const passwordMatches = timingSafeEqualStrings(credentials.password, env.ADMIN_PASSWORD);
+  return usernameMatches && passwordMatches;
 }
 
 export function getAdminIdentity(headers: Headers) {

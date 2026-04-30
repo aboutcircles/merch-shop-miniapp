@@ -138,6 +138,8 @@ export async function executeRefund(snapshot: PurchaseSnapshot): Promise<PayoutE
       };
     }
 
+    const completedTxHashes: string[] = [];
+
     try {
       await assertTreasuryHasNativeGas();
       const env = getEnv();
@@ -145,51 +147,60 @@ export async function executeRefund(snapshot: PurchaseSnapshot): Promise<PayoutE
       const avatar = await sdk.getAvatar(env.CIRCLES_ORG_ADDRESS as Address);
       const balances = await sdk.data.getBalances(env.CIRCLES_ORG_ADDRESS as Address);
       const transfers = planRefundDirectTransfers(balances, BigInt(verifiedAmountAttoCrc));
-      let receipt: TransactionReceipt | null = null;
 
       for (const transfer of transfers) {
-        receipt = await avatar.transfer.direct(
+        const receipt = await avatar.transfer.direct(
           snapshot.payerAddress as Address,
           transfer.amountAttoCircles,
           transfer.tokenAddress,
         );
+
+        if (receipt && typeof (receipt as TransactionReceipt).transactionHash === "string") {
+          completedTxHashes.push((receipt as TransactionReceipt).transactionHash);
+        } else {
+          throw new Error("Refund transfer completed without a transaction hash.");
+        }
       }
 
-      const txHash =
-        receipt && typeof receipt.transactionHash === "string"
-          ? receipt.transactionHash
-          : null;
+      const lastTxHash = completedTxHashes[completedTxHashes.length - 1] ?? null;
+      const allTxHashes = completedTxHashes.length > 1 ? completedTxHashes.join(",") : null;
 
       await setPayoutRecord({
         purchaseId: snapshot.purchaseId,
         status: "refunded",
-        txHash,
-        errorMessage: null,
+        txHash: lastTxHash,
+        errorMessage: allTxHashes,
         updatedAt: new Date().toISOString(),
       });
 
       return {
         purchaseId: snapshot.purchaseId,
         status: "refunded",
-        txHash,
+        txHash: lastTxHash,
         errorMessage: null,
       };
     } catch (error) {
       const message = formatRefundError(error);
+      const partial = completedTxHashes.length > 0;
+      const status: "needs_review" | "failed" = partial ? "needs_review" : "failed";
+      const lastTxHash = partial ? completedTxHashes[completedTxHashes.length - 1] : null;
+      const detail = partial
+        ? `PARTIAL REFUND - manual review required. ${completedTxHashes.length} transfer(s) succeeded (${completedTxHashes.join(", ")}). Failure: ${message}`
+        : message;
 
       await setPayoutRecord({
         purchaseId: snapshot.purchaseId,
-        status: "failed",
-        txHash: null,
-        errorMessage: message,
+        status,
+        txHash: lastTxHash,
+        errorMessage: detail,
         updatedAt: new Date().toISOString(),
       });
 
       return {
         purchaseId: snapshot.purchaseId,
-        status: "failed",
-        txHash: null,
-        errorMessage: message,
+        status,
+        txHash: lastTxHash,
+        errorMessage: detail,
       };
     }
   });

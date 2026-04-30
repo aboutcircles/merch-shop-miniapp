@@ -1,6 +1,6 @@
 export type PaymentStatus = "initiated" | "awaiting_payment" | "paid" | "expired" | "failed" | "cancelled";
 export type OutcomeStatus = "pending" | "won" | "lost";
-export type PayoutStatus = "none" | "queued" | "processing" | "refunded" | "failed";
+export type PayoutStatus = "none" | "queued" | "processing" | "refunded" | "failed" | "needs_review";
 export type VerificationStatus = "pending" | "valid" | "invalid" | "duplicate";
 
 export interface MerchItem {

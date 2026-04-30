@@ -10,6 +10,7 @@ import { reconcilePurchases } from "@/server/services/reconcile-service";
 const MAX_RECENT_EVENTS = 500;
 const RECONCILE_DEBOUNCE_MS = 750;
 const RECONCILE_INDEXER_RETRY_MS = 4_000;
+const RECONCILE_SAFETY_NET_MS = 30_000;
 const WSS_CONNECT_TIMEOUT_MS = 1_500;
 
 type WatcherStatus = "idle" | "connecting" | "open" | "closed" | "disabled";
@@ -17,12 +18,14 @@ type WatcherStatus = "idle" | "connecting" | "open" | "closed" | "disabled";
 type CirclesWssState = {
   client: RpcClient | null;
   lastError: string | null;
+  lastEventReceivedAt: number;
   pendingEventKeys: Set<string>;
   recentEventKeys: string[];
   recentEventKeySet: Set<string>;
   reconcileTimer: ReturnType<typeof setTimeout> | null;
   reconnectAttempt: number;
   reconnectTimer: ReturnType<typeof setTimeout> | null;
+  safetyNetTimer: ReturnType<typeof setInterval> | null;
   status: WatcherStatus;
   unsubscribe: (() => void) | null;
 };
@@ -36,12 +39,14 @@ function getState(): CirclesWssState {
     globalThis.__ethccBoothCirclesWss = {
       client: null,
       lastError: null,
+      lastEventReceivedAt: 0,
       pendingEventKeys: new Set(),
       recentEventKeys: [],
       recentEventKeySet: new Set(),
       reconcileTimer: null,
       reconnectAttempt: 0,
       reconnectTimer: null,
+      safetyNetTimer: null,
       status: "idle",
       unsubscribe: null,
     };
@@ -229,6 +234,8 @@ function scheduleReconcile(state: CirclesWssState, eventKey: string, delayMs = R
 }
 
 function handleCirclesEvent(state: CirclesWssState, event: CirclesEvent) {
+  state.lastEventReceivedAt = Date.now();
+
   if (!isInboundOrgTransfer(event)) {
     return;
   }
@@ -241,6 +248,21 @@ function handleCirclesEvent(state: CirclesWssState, event: CirclesEvent) {
 
   scheduleReconcile(state, eventKey);
   setTimeout(() => scheduleReconcile(state, eventKey, 0), RECONCILE_INDEXER_RETRY_MS);
+}
+
+function ensureSafetyNetReconcile(state: CirclesWssState) {
+  if (state.safetyNetTimer) {
+    return;
+  }
+
+  state.safetyNetTimer = setInterval(() => {
+    scheduleReconcile(state, `safety-net:${Date.now()}`, 0);
+  }, RECONCILE_SAFETY_NET_MS);
+
+  if (typeof state.safetyNetTimer === "object" && state.safetyNetTimer !== null) {
+    const handle = state.safetyNetTimer as { unref?: () => void };
+    handle.unref?.();
+  }
 }
 
 async function connect(state: CirclesWssState) {
@@ -299,6 +321,7 @@ async function connect(state: CirclesWssState) {
 
 export function ensureCirclesPaymentWatcher() {
   const state = getState();
+  ensureSafetyNetReconcile(state);
   void connect(state);
 }
 
@@ -307,6 +330,9 @@ export function getCirclesPaymentWatcherStatus() {
 
   return {
     lastError: state.lastError,
+    lastEventReceivedAt: state.lastEventReceivedAt
+      ? new Date(state.lastEventReceivedAt).toISOString()
+      : null,
     pendingEventCount: state.pendingEventKeys.size,
     status: state.status,
   };

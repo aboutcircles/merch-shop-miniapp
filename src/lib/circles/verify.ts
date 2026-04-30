@@ -102,6 +102,12 @@ function applyOutcomeStatus(
     snapshot.statusMessage = "Payment confirmed, but the automatic refund failed and needs a retry.";
   }
 
+  if (trackedPurchase?.payoutStatus === "needs_review") {
+    snapshot.payoutStatus = "needs_review";
+    snapshot.payoutTxHash = trackedPurchase.payoutTxHash;
+    snapshot.statusMessage = "Refund partially completed. Manual review required before retrying.";
+  }
+
   if (trackedPurchase?.payoutStatus === "refunded") {
     snapshot.payoutStatus = "refunded";
     snapshot.payoutTxHash = trackedPurchase.payoutTxHash;
