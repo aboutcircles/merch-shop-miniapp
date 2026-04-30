@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import type { PurchaseSnapshot } from "@/types";
+import type { MerchItem, PurchaseSnapshot } from "@/types";
 import { PaymentQrCard } from "@/components/checkout/PaymentQrCard";
 
 function shouldVerifyPayment(snapshot: PurchaseSnapshot) {
@@ -42,11 +42,13 @@ export function PurchaseStatusClient({
   purchaseId,
   ticket,
   initialSnapshot,
+  purchasedItem,
   developerPageUrl,
 }: {
   purchaseId: string;
   ticket: string;
   initialSnapshot: PurchaseSnapshot;
+  purchasedItem: Pick<MerchItem, "image" | "name"> | null;
   developerPageUrl: string;
 }) {
   const [snapshot, setSnapshot] = useState(initialSnapshot);
@@ -93,7 +95,12 @@ export function PurchaseStatusClient({
         </div>
       ) : null}
 
-      <PaymentQrCard snapshot={snapshot} pending={pending} developerPageUrl={developerPageUrl} />
+      <PaymentQrCard
+        snapshot={snapshot}
+        pending={pending}
+        purchasedItem={purchasedItem}
+        developerPageUrl={developerPageUrl}
+      />
     </div>
   );
 }

@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 
 import type { MerchItem, PurchaseIntent } from "@/types";
 import { Button } from "@/components/ui/Button";
-import { DemoDisclaimerBanner } from "@/components/ui/DemoDisclaimerBanner";
 import { Panel } from "@/components/ui/Panel";
 import { calculateRefundChancePercentFromRatio } from "@/lib/refund-chance";
 import { clamp } from "@/lib/utils";
@@ -274,8 +273,6 @@ function ProductSheetInner({
               <span className="h-4 w-4 bg-[var(--ink)]" />
               <span className="text-2xl">{currentItem.name}</span>
             </div>
-
-            <DemoDisclaimerBanner compact />
 
             {!checkoutConfigured ? (
               <div className="rounded-[20px] border border-[var(--line)] bg-white/92 px-4 py-3 text-sm leading-6 text-[var(--muted)]">

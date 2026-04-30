@@ -14,6 +14,7 @@ export interface MerchItem {
   stock: number;
   isActive: boolean;
   tag: string;
+  displayOrder: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -110,4 +111,23 @@ export interface PayoutExecutionResult {
   status: PayoutStatus;
   txHash: string | null;
   errorMessage: string | null;
+}
+
+export type AdminTransactionKind = "payment" | "refund";
+export type AdminTransactionStatus = "pending" | "confirmed" | "failed";
+
+export interface AdminTransactionSnapshot {
+  id: string;
+  kind: AdminTransactionKind;
+  status: AdminTransactionStatus;
+  purchaseId: string;
+  reference: string;
+  merchName: string;
+  amountCrc: string;
+  txHash: string | null;
+  actorAddress: string | null;
+  actorDisplayName: string | null;
+  createdAt: string;
+  detectedAt: string | null;
+  statusMessage: string;
 }

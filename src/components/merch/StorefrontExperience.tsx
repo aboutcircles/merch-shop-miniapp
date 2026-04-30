@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 
 import type { MerchItem } from "@/types";
@@ -10,14 +10,62 @@ import { Panel } from "@/components/ui/Panel";
 import { cn } from "@/lib/utils";
 
 export function StorefrontExperience({
-  items,
+  items: initialItems,
   checkoutConfigured,
 }: {
   items: MerchItem[];
   checkoutConfigured: boolean;
 }) {
+  const [items, setItems] = useState(initialItems);
   const [selectedItem, setSelectedItem] = useState<MerchItem | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    setItems(initialItems);
+  }, [initialItems]);
+
+  useEffect(() => {
+    const interval = window.setInterval(async () => {
+      try {
+        const response = await fetch("/api/merch", { cache: "no-store" });
+        const data = (await response.json()) as { items?: MerchItem[] };
+
+        if (!response.ok || !data.items) {
+          return;
+        }
+
+        setItems(data.items);
+        setActiveIndex((current) => Math.min(current, Math.max(0, data.items!.length - 1)));
+        setSelectedItem((current) => {
+          if (!current) {
+            return null;
+          }
+
+          return data.items!.find((item) => item.id === current.id) ?? null;
+        });
+      } catch {
+        // Keep the current storefront state if a background refresh fails.
+      }
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  if (!items.length) {
+    return (
+      <Panel className="flex min-h-[24rem] items-center justify-center p-8 text-center">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+            Storefront
+          </p>
+          <p className="mt-2 text-3xl font-semibold text-[var(--ink)]">No products available</p>
+          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+            Add products from the admin page to publish them here.
+          </p>
+        </div>
+      </Panel>
+    );
+  }
 
   const activeItem = items[activeIndex];
 

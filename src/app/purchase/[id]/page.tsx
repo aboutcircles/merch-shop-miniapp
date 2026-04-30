@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 
 import { PurchaseStatusClient } from "@/components/checkout/PurchaseStatusClient";
-import { getEnv } from "@/lib/env";
-import { DEVELOPER_PAGE_PATH } from "@/lib/site";
+import { getMerchItemById } from "@/lib/merch-store";
+import { MINIAPP_DOCS_URL } from "@/lib/site";
 import { getPurchaseSnapshot } from "@/server/services/payment-service";
 
 type PurchasePageProps = {
@@ -23,14 +23,15 @@ export default async function PurchasePage({ params, searchParams }: PurchasePag
     notFound();
   }
 
-  const developerPageUrl = new URL(DEVELOPER_PAGE_PATH, getEnv().SITE_URL).toString();
+  const purchasedItem = await getMerchItemById(snapshot.merchItemId);
 
   return (
     <PurchaseStatusClient
       purchaseId={id}
       ticket={ticket}
       initialSnapshot={snapshot}
-      developerPageUrl={developerPageUrl}
+      purchasedItem={purchasedItem ? { image: purchasedItem.image, name: purchasedItem.name } : null}
+      developerPageUrl={MINIAPP_DOCS_URL}
     />
   );
 }

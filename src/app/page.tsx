@@ -2,9 +2,9 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { StorefrontExperience } from "@/components/merch/StorefrontExperience";
-import { DemoDisclaimerBanner } from "@/components/ui/DemoDisclaimerBanner";
 import { isAppEnvConfigured } from "@/lib/env";
 import { listMerchItems } from "@/lib/merch-store";
+import { MINIAPP_DOCS_URL } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +28,7 @@ export default async function HomePage() {
         </div>
 
         <Link
-          href="/developers"
+          href={MINIAPP_DOCS_URL}
           target="_blank"
           rel="noreferrer"
           className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--line)] bg-white px-4 text-sm font-semibold text-[var(--ink)] shadow-[0_10px_30px_rgba(5,6,26,0.06)] transition-transform duration-200 ease-out hover:-translate-y-0.5"
@@ -37,10 +37,8 @@ export default async function HomePage() {
         </Link>
       </header>
 
-      <DemoDisclaimerBanner />
-
       <StorefrontExperience
-        items={merchItems.filter((item) => item.isActive)}
+        items={merchItems.filter((item) => item.isActive && item.stock > 0)}
         checkoutConfigured={checkoutConfigured}
       />
     </main>

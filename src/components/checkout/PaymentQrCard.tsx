@@ -6,9 +6,7 @@ import QRCode from "react-qr-code";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { merchCatalog } from "@/data/merch";
-import type { PurchaseSnapshot } from "@/types";
-import { DemoDisclaimerBanner } from "@/components/ui/DemoDisclaimerBanner";
+import type { MerchItem, PurchaseSnapshot } from "@/types";
 import { Panel } from "@/components/ui/Panel";
 import { StatusBadge } from "@/components/status/StatusBadge";
 import { formatDateTime, formatRelativeCountdownAt } from "@/lib/utils";
@@ -35,10 +33,12 @@ function IconCircle({
 export function PaymentQrCard({
   snapshot,
   pending,
+  purchasedItem,
   developerPageUrl,
 }: {
   snapshot: PurchaseSnapshot;
   pending: boolean;
+  purchasedItem: Pick<MerchItem, "image" | "name"> | null;
   developerPageUrl: string;
 }) {
   const router = useRouter();
@@ -59,7 +59,6 @@ export function PaymentQrCard({
   const refundEligible = paymentComplete && snapshot.outcomeStatus === "won";
   const paymentLost = paymentComplete && snapshot.outcomeStatus === "lost";
   const displayMessage = awaitingPayment ? null : snapshot.statusMessage;
-  const purchasedItem = merchCatalog.find((item) => item.id === snapshot.merchItemId) ?? null;
 
   const statusTone =
     refundEligible
@@ -269,8 +268,6 @@ export function PaymentQrCard({
 
           {awaitingPayment ? (
             <div className="w-full rounded-[28px] border border-[var(--line)] bg-white p-4 shadow-[inset_0_1px_0_#fff]">
-              <DemoDisclaimerBanner compact className="mb-4" />
-
               <div className="rounded-[22px] border border-[rgba(240,165,49,0.28)] bg-[rgba(255,248,235,0.92)] px-4 py-3 text-left">
                 <p className="text-sm font-semibold text-[var(--ink)]">Do not scan this QR from inside Gnosis App.</p>
                 <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
