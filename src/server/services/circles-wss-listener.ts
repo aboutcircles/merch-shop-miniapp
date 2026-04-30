@@ -10,8 +10,9 @@ import { reconcilePurchases } from "@/server/services/reconcile-service";
 const MAX_RECENT_EVENTS = 500;
 const RECONCILE_DEBOUNCE_MS = 750;
 const RECONCILE_INDEXER_RETRY_MS = 4_000;
+const WSS_CONNECT_TIMEOUT_MS = 1_500;
 
-type WatcherStatus = "idle" | "connecting" | "open" | "closed";
+type WatcherStatus = "idle" | "connecting" | "open" | "closed" | "disabled";
 
 type CirclesWssState = {
   client: RpcClient | null;
@@ -55,6 +56,87 @@ function normalizeAddress(value: string) {
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Unknown Circles SDK listener error.";
+}
+
+function isLoopbackHostname(hostname: string) {
+  return (
+    hostname === "localhost" ||
+    hostname === "0.0.0.0" ||
+    hostname === "::1" ||
+    hostname === "[::1]" ||
+    hostname.startsWith("127.")
+  );
+}
+
+function getCirclesSubscriptionWsUrl(rpcUrl: string) {
+  const url = new URL(rpcUrl);
+
+  if (url.protocol === "https:") {
+    url.protocol = "wss:";
+  }
+
+  if (url.protocol === "http:") {
+    url.protocol = "ws:";
+  }
+
+  const wsUrl = url.toString();
+  return wsUrl.endsWith("/") ? `${wsUrl}ws/subscribe` : `${wsUrl}/ws/subscribe`;
+}
+
+function shouldUseCirclesWssListener() {
+  const env = getEnv();
+
+  if (env.CIRCLES_WSS_LISTENER_ENABLED !== undefined) {
+    return {
+      enabled: env.CIRCLES_WSS_LISTENER_ENABLED,
+      reason: env.CIRCLES_WSS_LISTENER_ENABLED
+        ? null
+        : "Circles WebSocket watcher disabled by CIRCLES_WSS_LISTENER_ENABLED=false.",
+    };
+  }
+
+  const rpcUrl = new URL(env.CIRCLES_RPC_URL);
+
+  if (rpcUrl.protocol === "http:" && isLoopbackHostname(rpcUrl.hostname)) {
+    return {
+      enabled: false,
+      reason:
+        "Circles WebSocket watcher auto-disabled for local HTTP RPC URL. Use explicit payment verification or reconcile polling for local fork tests.",
+    };
+  }
+
+  return {
+    enabled: true,
+    reason: null,
+  };
+}
+
+function canConnectToSubscriptionWebSocket(rpcUrl: string) {
+  const wsUrl = getCirclesSubscriptionWsUrl(rpcUrl);
+
+  return new Promise<boolean>((resolve) => {
+    let settled = false;
+    const socket = new WebSocket(wsUrl);
+    const finish = (connected: boolean) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      clearTimeout(timeout);
+
+      if (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN) {
+        socket.close();
+      }
+
+      resolve(connected);
+    };
+    const timeout = setTimeout(() => finish(false), WSS_CONNECT_TIMEOUT_MS);
+
+    socket.onopen = () => finish(true);
+    socket.onerror = () => finish(false);
+    socket.onclose = () => finish(false);
+  });
 }
 
 function isInboundOrgTransfer(event: CirclesEvent) {
@@ -162,7 +244,20 @@ function handleCirclesEvent(state: CirclesWssState, event: CirclesEvent) {
 }
 
 async function connect(state: CirclesWssState) {
-  if (state.status === "connecting" || state.status === "open") {
+  if (
+    state.status === "connecting" ||
+    state.status === "open" ||
+    state.status === "disabled" ||
+    state.reconnectTimer
+  ) {
+    return;
+  }
+
+  const listenerConfig = shouldUseCirclesWssListener();
+
+  if (!listenerConfig.enabled) {
+    state.lastError = listenerConfig.reason;
+    state.status = "disabled";
     return;
   }
 
@@ -176,6 +271,13 @@ async function connect(state: CirclesWssState) {
 
   try {
     const env = getEnv();
+
+    if (!(await canConnectToSubscriptionWebSocket(env.CIRCLES_RPC_URL))) {
+      throw new Error(
+        `Circles WebSocket subscription endpoint is unavailable at ${getCirclesSubscriptionWsUrl(env.CIRCLES_RPC_URL)}.`,
+      );
+    }
+
     const client = new RpcClient(env.CIRCLES_RPC_URL);
     const events = await client.subscribe(env.CIRCLES_ORG_ADDRESS as Address);
 

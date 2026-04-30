@@ -152,7 +152,14 @@ export async function buildPurchaseSnapshot(
   const paymentRow = findMatchingPayment(payload, rows, txHash);
   const now = Date.now();
   const expired = now > new Date(payload.expiresAt).getTime();
-  const autoCancelled = expired && !paymentRow;
+  const hasRecordedPayment =
+    trackedPurchase?.paymentStatus === "paid" ||
+    Boolean(trackedPurchase?.paymentTxHash && trackedPurchase.payerAddress && trackedPurchase.paymentDetectedAt);
+  const isTerminalTrackedPayment =
+    trackedPurchase?.paymentStatus === "paid" ||
+    trackedPurchase?.paymentStatus === "failed" ||
+    trackedPurchase?.paymentStatus === "cancelled";
+  const autoCancelled = expired && !paymentRow && !hasRecordedPayment && !isTerminalTrackedPayment;
   const cancelledAt = trackedPurchase?.cancelledAt ?? (autoCancelled ? new Date().toISOString() : null);
 
   let verificationStatus: VerificationStatus = trackedPurchase?.verificationStatus ?? "pending";

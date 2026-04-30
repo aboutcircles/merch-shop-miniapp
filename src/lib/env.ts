@@ -2,6 +2,26 @@ import "server-only";
 
 import { z } from "zod";
 
+const optionalBooleanSchema = z.preprocess((value) => {
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+
+    if (["1", "true", "yes", "on"].includes(normalized)) {
+      return true;
+    }
+
+    if (["0", "false", "no", "off"].includes(normalized)) {
+      return false;
+    }
+  }
+
+  return value;
+}, z.boolean().optional());
+
 const envSchema = z.object({
   ADMIN_PASSWORD: z.string().min(1),
   ADMIN_USERNAME: z.string().min(1),
@@ -13,6 +33,7 @@ const envSchema = z.object({
     .string()
     .regex(/^0x[a-fA-F0-9]{40}$/)
     .optional(),
+  CIRCLES_WSS_LISTENER_ENABLED: optionalBooleanSchema,
   INTERNAL_API_TOKEN: z.string().min(16),
   PAYMENT_SESSION_MINUTES: z.coerce.number().int().min(5).max(120).default(5),
   PURCHASE_SIGNING_SECRET: z.string().min(32),
@@ -34,6 +55,7 @@ function readRawEnv() {
     CIRCLES_RPC_URL: process.env.CIRCLES_RPC_URL,
     CIRCLES_TREASURY_PRIVATE_KEY: process.env.CIRCLES_TREASURY_PRIVATE_KEY,
     CIRCLES_TREASURY_SAFE_ADDRESS: process.env.CIRCLES_TREASURY_SAFE_ADDRESS,
+    CIRCLES_WSS_LISTENER_ENABLED: process.env.CIRCLES_WSS_LISTENER_ENABLED,
     INTERNAL_API_TOKEN: process.env.INTERNAL_API_TOKEN,
     PAYMENT_SESSION_MINUTES: process.env.PAYMENT_SESSION_MINUTES,
     PURCHASE_SIGNING_SECRET: process.env.PURCHASE_SIGNING_SECRET,

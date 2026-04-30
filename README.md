@@ -28,6 +28,10 @@ cp .env.example .env.local
 - `SUPABASE_SERVICE_ROLE_KEY`: server-only service role key used for backend persistence
 - `SUPABASE_DB_URL`: Postgres connection string used only for setup/migrations
 
+Optional:
+
+- `CIRCLES_WSS_LISTENER_ENABLED`: set to `false` to disable the live Circles WebSocket watcher. When unset, local loopback HTTP RPC URLs such as Anvil/fork proxies are auto-disabled and can still use manual verification or reconcile polling.
+
 4. Create the required tables in Supabase on a fresh database:
 
 Set `SUPABASE_DB_URL` to the Supabase pooler or direct Postgres connection string, then run:
