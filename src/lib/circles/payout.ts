@@ -40,7 +40,7 @@ function normalizeAddress(value: string) {
 }
 
 const SUPPORTED_REFUND_TOKEN_ADDRESSES = [
-  "0x401c07f1b1296ef9b9fc137b54468875e1919a96",
+  "0x93eD5A96347927ff6fF6b790F8Cf5258240c321f",
   "0xC19BC204eb1c1D5B3FE500E5E5dfaBaB625F286c",
 ] as const;
 
