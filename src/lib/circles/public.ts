@@ -89,35 +89,12 @@ function mapTransferDataEvents(events: TransferDataEventPayload[] = []): Circles
 }
 
 async function circlesEventsQuery(recipientAddress: string) {
-  const env = getEnv();
-  const body = {
-    jsonrpc: "2.0",
-    id: 1,
-    method: "circles_events",
-    params: [recipientAddress, null, null, ["CrcV2_TransferData"]],
-  };
+  const result = await getReadOnlySdk().rpc.client.call<unknown[], TransferDataQueryResult>(
+    "circles_events",
+    [recipientAddress, null, null, ["CrcV2_TransferData"]],
+  );
 
-  const response = await fetch(env.CIRCLES_RPC_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`circles_events failed: ${response.status} ${text}`);
-  }
-
-  const payload = (await response.json()) as { error?: { message?: string }; result?: TransferDataQueryResult };
-
-  if (payload.error) {
-    throw new Error(payload.error.message ?? "circles_events returned an error");
-  }
-
-  const rawEvents = Array.isArray(payload.result) ? payload.result : (payload.result?.events ?? []);
+  const rawEvents = Array.isArray(result) ? result : (result?.events ?? []);
 
   return mapTransferDataEvents(rawEvents);
 }
