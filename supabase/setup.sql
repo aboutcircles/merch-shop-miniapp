@@ -29,6 +29,7 @@ create table if not exists public.merch_items (
   )
 );
 
+-- purchases --------------------------------------------------
 create table if not exists public.purchases (
   purchase_id text primary key,
   reference text not null unique,
@@ -53,21 +54,23 @@ create table if not exists public.purchases (
   last_verified_at timestamptz,
   constraint purchases_payment_status_check check (payment_status in ('initiated', 'awaiting_payment', 'paid', 'expired', 'failed', 'cancelled')),
   constraint purchases_outcome_status_check check (outcome_status in ('pending', 'won', 'lost')),
-  constraint purchases_payout_status_check check (payout_status in ('none', 'queued', 'processing', 'refunded', 'failed')),
+  constraint purchases_payout_status_check check (payout_status in ('none', 'queued', 'processing', 'refunded', 'failed', 'needs_review')),
   constraint purchases_verification_status_check check (verification_status in ('pending', 'valid', 'invalid', 'duplicate')),
   constraint purchases_payment_tx_hash_check check (payment_tx_hash is null or payment_tx_hash ~ '^0x[a-fA-F0-9]{64}$'),
   constraint purchases_payout_tx_hash_check check (payout_tx_hash is null or payout_tx_hash ~ '^0x[a-fA-F0-9]{64}$')
 );
 
+-- payout_records ---------------------------------------------
 create table if not exists public.payout_records (
   purchase_id text primary key references public.purchases (purchase_id) on delete cascade,
-  status text not null check (status in ('none', 'queued', 'processing', 'refunded', 'failed')),
+  status text not null check (status in ('none', 'queued', 'processing', 'refunded', 'failed', 'needs_review')),
   tx_hash text,
   error_message text,
   updated_at timestamptz not null,
   constraint payout_records_tx_hash_check check (tx_hash is null or tx_hash ~ '^0x[a-fA-F0-9]{64}$')
 );
 
+-- purchase_archives ------------------------------------------
 create table if not exists public.purchase_archives (
   purchase_id text primary key,
   reference text not null,
@@ -93,6 +96,7 @@ create table if not exists public.purchase_archives (
   archived_at timestamptz not null default timezone('utc', now())
 );
 
+-- indexes ----------------------------------------------------
 create index if not exists merch_items_display_order_idx on public.merch_items (display_order asc, name asc);
 create index if not exists purchases_created_at_idx on public.purchases (created_at desc);
 create index if not exists purchases_active_created_at_idx
@@ -102,6 +106,7 @@ create index if not exists purchases_outcome_status_idx on public.purchases (out
 create index if not exists purchase_archives_created_at_idx on public.purchase_archives (created_at desc);
 create index if not exists purchase_archives_archived_at_idx on public.purchase_archives (archived_at desc);
 
+-- updated_at trigger -----------------------------------------
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
@@ -118,11 +123,13 @@ before update on public.merch_items
 for each row
 execute function public.set_updated_at();
 
+-- row level security -----------------------------------------
 alter table public.merch_items enable row level security;
 alter table public.purchases enable row level security;
 alter table public.payout_records enable row level security;
 alter table public.purchase_archives enable row level security;
 
+-- storage bucket ---------------------------------------------
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('merch-images', 'merch-images', true, 10485760, array['image/*'])
 on conflict (id) do update set

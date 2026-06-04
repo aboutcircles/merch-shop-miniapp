@@ -21,7 +21,7 @@ export default async function HomePage() {
           </div>
           <div>
             <h1 className="text-3xl font-semibold tracking-tight text-[var(--ink)] md:text-4xl">
-              Gnosis Merch Shop
+              Dappcon Merch Shop
             </h1>
             <p className="mt-1 text-sm font-semibold text-[var(--accent)]">Powered by Circles</p>
           </div>

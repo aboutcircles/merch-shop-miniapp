@@ -10,7 +10,7 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Gnosis Merch Shop",
+  title: "Dappcon Merch Shop",
   description: "CRC merch checkout for in-person booth sales.",
   icons: {
     icon: "/circles-logo.svg",
