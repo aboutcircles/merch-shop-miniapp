@@ -170,6 +170,18 @@ function sumMatchingTransfers(
   return streamedTotal > 0n ? streamedTotal : directTransferTotal;
 }
 
+export async function getTransactionInput(txHash: string) {
+  try {
+    const transaction = await getPublicClient().getTransaction({
+      hash: txHash as `0x${string}`,
+    });
+
+    return transaction.input ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getTransferAmountForTx(event: Pick<CirclesTransferDataEvent, "transactionHash" | "from" | "to">) {
   const receipt = await getPublicClient().getTransactionReceipt({
     hash: event.transactionHash as `0x${string}`,

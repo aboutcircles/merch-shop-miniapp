@@ -74,6 +74,29 @@ export function encodePaymentReferenceTransferData(reference: string) {
   return encodeCrcV2TransferData([reference], TEXT_TRANSFER_DATA_TYPE);
 }
 
+export function calldataContainsReference(calldata: string, reference: string) {
+  if (!reference) {
+    return false;
+  }
+
+  const haystack = calldata.trim().toLowerCase();
+
+  if (!haystack || haystack === "0x") {
+    return false;
+  }
+
+  // The payment reference is embedded verbatim in the transaction calldata as a
+  // Circles transfer-data annotation (and, defensively, as its raw UTF-8 bytes),
+  // regardless of how the payer's wallet wraps the call (direct ERC-1155
+  // transfer, Safe execTransaction, or flow-matrix path transfer). Locating it
+  // in the calldata lets us confirm the payment immediately, without waiting for
+  // the indexer to expose the CrcV2_TransferData event.
+  const annotationHex = encodePaymentReferenceTransferData(reference).replace(/^0x/i, "").toLowerCase();
+  const utf8Hex = utf8ToHex(reference).toLowerCase();
+
+  return haystack.includes(annotationHex) || haystack.includes(utf8Hex);
+}
+
 export function transferDataMatchesReference(dataField: string, reference: string) {
   const target = normalizeString(reference);
 
