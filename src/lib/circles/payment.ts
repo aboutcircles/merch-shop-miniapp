@@ -30,7 +30,7 @@ function buildReference(purchaseId: string) {
 
 function generatePaymentLink(recipientAddress: string, amountCrc: string, data: string) {
   const encodedData = encodeURIComponent(data);
-  return `https://app.gnosis.io/transfer/${recipientAddress}/gcrc?amount=${amountCrc}&data=${encodedData}`;
+  return `https://app.gnosis.io/transfer/${recipientAddress}/crc?amount=${amountCrc}&data=${encodedData}`;
 }
 
 export function calculateRefundChancePercent(item: MerchItem, selectedAmountCrc: string) {
