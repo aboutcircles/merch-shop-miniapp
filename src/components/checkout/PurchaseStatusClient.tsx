@@ -30,7 +30,17 @@ export function PurchaseStatusClient({
 }) {
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [error, setError] = useState<string | null>(null);
-  const terminal = isTerminalSnapshot(snapshot);
+  const [manuallyPaid, setManuallyPaid] = useState(false);
+  // `manuallyPaid` is treated as terminal so the SSE stream tears down and never
+  // reconnects — otherwise the next server event would overwrite the locally
+  // confirmed "paid" snapshot back to "awaiting_payment".
+  const terminal = manuallyPaid || isTerminalSnapshot(snapshot);
+
+  function markPaidLocally() {
+    setManuallyPaid(true);
+    setSnapshot((current) => ({ ...current, paymentStatus: "paid" }));
+    setError(null);
+  }
 
   useEffect(() => {
     if (terminal) {
@@ -93,6 +103,7 @@ export function PurchaseStatusClient({
         pending={false}
         purchasedItem={purchasedItem}
         developerPageUrl={developerPageUrl}
+        onMarkPaid={markPaidLocally}
       />
     </div>
   );

@@ -35,15 +35,26 @@ export function PaymentQrCard({
   pending,
   purchasedItem,
   developerPageUrl,
+  onMarkPaid,
 }: {
   snapshot: PurchaseSnapshot;
   pending: boolean;
   purchasedItem: Pick<MerchItem, "image" | "name"> | null;
   developerPageUrl: string;
+  onMarkPaid?: () => void;
 }) {
   const router = useRouter();
   const [now, setNow] = useState(() => Date.now());
   const [cancelling, setCancelling] = useState(false);
+  const [useGcrc, setUseGcrc] = useState(false);
+
+  // The gCRC transfer route is identical to the CRC link but drops the on-chain
+  // payment reference, so the watcher can never auto-detect it. We derive the
+  // link from the existing CRC payload (guaranteeing matching amount/data) and
+  // surface a manual "Mark as paid" control as the only completion path.
+  const paymentLink = useGcrc
+    ? snapshot.qrPayload.replace("/crc?", "/gcrc?")
+    : snapshot.qrPayload;
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -267,9 +278,36 @@ export function PaymentQrCard({
           {awaitingStatusSection}
 
           {awaitingPayment ? (
+            <button
+              type="button"
+              role="switch"
+              aria-checked={useGcrc}
+              onClick={() => setUseGcrc((value) => !value)}
+              className="flex w-full items-center justify-between gap-3 rounded-[20px] border border-[var(--line)] bg-white px-4 py-3 text-left shadow-[inset_0_1px_0_#fff]"
+            >
+              <span className="flex flex-col">
+                <span className="text-sm font-semibold text-[var(--ink)]">Pay with gCRC</span>
+                <span className="text-xs text-[var(--muted)]">
+                  Manual confirmation — tap “Mark as paid” after you send the transfer.
+                </span>
+              </span>
+              <span
+                aria-hidden="true"
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 ease-out ${useGcrc ? "bg-[var(--accent)]" : "bg-[var(--line)]"
+                  }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200 ease-out ${useGcrc ? "translate-x-5" : "translate-x-1"
+                    }`}
+                />
+              </span>
+            </button>
+          ) : null}
+
+          {awaitingPayment ? (
             <div className="w-full rounded-[28px] border border-[var(--line)] bg-white p-4 shadow-[inset_0_1px_0_#fff]">
               <div className="mx-auto flex max-w-[340px] justify-center rounded-[24px] bg-white p-4 md:p-6">
-                <QRCode size={280} value={snapshot.qrPayload} />
+                <QRCode size={280} value={paymentLink} />
               </div>
             </div>
           ) : (
@@ -288,13 +326,23 @@ export function PaymentQrCard({
           {awaitingPayment ? (
             <>
               <a
-                href={snapshot.qrPayload}
+                href={paymentLink}
                 target="_blank"
                 rel="noreferrer"
                 className="primary-button inline-flex min-h-12 w-full items-center justify-center rounded-full px-5 text-sm font-semibold shadow-[0_16px_36px_rgba(67,53,223,0.24)] transition-transform duration-200 ease-out hover:-translate-y-0.5"
               >
                 Open In Gnosis App
               </a>
+
+              {useGcrc ? (
+                <button
+                  type="button"
+                  onClick={() => onMarkPaid?.()}
+                  className="secondary-button inline-flex min-h-12 w-full items-center justify-center rounded-full border-[var(--accent)] px-5 text-sm font-semibold text-[var(--accent)] transition-transform duration-200 ease-out hover:-translate-y-0.5"
+                >
+                  I’ve paid — mark as paid
+                </button>
+              ) : null}
 
               <button
                 type="button"
